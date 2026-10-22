@@ -1,15 +1,18 @@
 # OxyKit.Flow
 
+[![CI](https://github.com/oxykit-dev/OxyKit.Flow/actions/workflows/ci.yml/badge.svg)](https://github.com/oxykit-dev/OxyKit.Flow/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/download)
+
 Job **orchestrator** for the [OxyKit](https://oxykit.dev) suite: accept render + deliver jobs, persist them (SQLite), process asynchronously via OxyKit.Render and output providers.
 
-**License:** MIT · **Version:** 0.1.0 (pre-1.0) · **Org:** [oxykit-dev](https://github.com/oxykit-dev)  
-**Host:** FastEndpoints + ErrorOr (Mail-aligned DX)  
-**Depends on:** [`OxyKit.Render.Client`](https://www.nuget.org/packages/OxyKit.Render.Client) (NuGet) · HTTP to [OxyKit.Mail](https://github.com/oxykit-dev/OxyKit.Mail) for `mail` output  
-**Releases:** runnable app zips only (no Flow NuGet) — see [docs/RELEASE.md](./docs/RELEASE.md)
+**License:** MIT · **Org:** [oxykit-dev](https://github.com/oxykit-dev) · **Site:** [oxykit.dev](https://oxykit.dev)  
+**Releases:** [app zips](https://github.com/oxykit-dev/OxyKit.Flow/releases) (no Flow NuGet) · **Uses:** [`OxyKit.Render.Client`](https://www.nuget.org/packages/OxyKit.Render.Client)  
+**Related:** HTTP to [OxyKit.Mail](https://github.com/oxykit-dev/OxyKit.Mail) for `mail` output · host DX matches Mail (FastEndpoints + ErrorOr)
 
 ## Quick start
 
-Requires [.NET 10 SDK](https://dotnet.microsoft.com/download). Run a render engine first (Local API or a release zip from [OxyKit.Render](https://github.com/oxykit-dev/OxyKit.Render)).
+Requires [.NET 10 SDK](https://dotnet.microsoft.com/download). Run a render engine first (Local API or a [Render release zip](https://github.com/oxykit-dev/OxyKit.Render/releases)).
 
 ```bash
 # Terminal A — Render (:5066)
@@ -25,10 +28,10 @@ Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-ke
 |--------------|---------|
 | `http://localhost:5077` | API |
 | `X-OxyKit-Flow-Key: dev-flow-key` | Dev API key |
-| `/scalar`, `/openapi/v1.json` | OpenAPI UI + JSON (Development) |
+| `GET /health` | Health |
+| `/scalar`, `/openapi/v1.json` | OpenAPI UI + JSON (Development only) |
 | `POST /api/v1/jobs` (+ optional `Idempotency-Key`) | Create job |
 | `GET /api/v1/jobs/{id}` | Poll status |
-| `GET /health` | Health |
 
 ```bash
 dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
@@ -44,8 +47,9 @@ Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). 
 |-----|------|
 | [AGENTS.md](./AGENTS.md) | Layout, pipeline, constraints |
 | [docs/RELEASE.md](./docs/RELEASE.md) | Tag → GitHub Release app zips |
+| [oxykit.dev/flow](https://oxykit.dev/flow/) | Product docs |
 | [src/OxyKit.Flow/PHILOSOPHY.md](./src/OxyKit.Flow/PHILOSOPHY.md) | Product vision |
 | [hoppscotch/](./hoppscotch/) | Manual HTTP smoke |
 | [CHANGELOG.md](./CHANGELOG.md) | Keep a Changelog |
-| [LICENSE](./LICENSE) | MIT |
 | `/scalar` · `/openapi/v1.json` | Live API shapes (Development) |
+| [LICENSE](./LICENSE) | MIT |
