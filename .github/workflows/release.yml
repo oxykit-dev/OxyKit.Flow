@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate version matches host
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          PROJECT_VERSION=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/OxyKit.Flow/OxyKit.Flow.csproj | head -1)
+          if [ "$PROJECT_VERSION" != "$VERSION" ]; then
+            echo "::error::Tag version ($VERSION) does not match src/OxyKit.Flow/OxyKit.Flow.csproj ($PROJECT_VERSION)"
+            exit 1
+          fi
+
+      - name: Restore
+        run: dotnet restore OxyKit.Flow.slnx
+
+      - name: Build
+        run: dotnet build OxyKit.Flow.slnx --no-restore -c Release
+
+      - name: Test
+        run: |
+          dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj --no-build -c Release --verbosity normal
+
+      # Runnable app zips — framework-dependent per OS (needs .NET 10 runtime; no NuGet packages)
+      - name: Publish and zip runnable apps
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          mkdir -p dist
+          for rid in linux-x64 win-x64 osx-arm64; do
+            out="publish/${rid}"
+            rm -rf "${out}"
+            dotnet publish src/OxyKit.Flow/OxyKit.Flow.csproj \
+              -c Release \
+              -r "${rid}" \
+              --self-contained false \
+              -p:UseAppHost=true \
+              -o "${out}"
+            rm -f "${out}/appsettings.Development.json"
+            # Clear secret-shaped defaults from the publish output.
+            python3 -c "
+import json, pathlib
+p = pathlib.Path('${out}') / 'appsettings.json'
+data = json.loads(p.read_text())
+if 'Security' in data:
+    data['Security']['ApiKey'] = ''
+for eng in data.get('Render', {}).get('Engines', {}).values():
+    if isinstance(eng, dict) and 'ApiKey' in eng:
+        eng['ApiKey'] = ''
+mail = data.get('OxyKit.Mail', {})
+if isinstance(mail, dict) and 'ApiKey' in mail:
+    mail['ApiKey'] = ''
+p.write_text(json.dumps(data, indent=2) + chr(10))
+"
+            printf '%s\n' \
+              "OxyKit.Flow ${VERSION} (${rid})" \
+              "" \
+              "Requires the .NET 10 runtime for this OS:" \
+              "  https://dotnet.microsoft.com/download/dotnet/10.0" \
+              "" \
+              "Also run an OxyKit.Render engine (default http://localhost:5066)." \
+              "" \
+              "Set keys, then run:" \
+              "" \
+              "  # Linux / macOS" \
+              "  export Security__ApiKey='your-flow-key'" \
+              "  export Render__Engines__oxykit-render__BaseAddress='http://localhost:5066/'" \
+              "  export Render__Engines__oxykit-render__ApiKey='your-render-key'" \
+              "  export ASPNETCORE_URLS='http://localhost:5077'" \
+              "  ./OxyKit.Flow" \
+              "" \
+              "  # Windows (PowerShell)" \
+              "  \$env:Security__ApiKey='your-flow-key'" \
+              "  \$env:Render__Engines__oxykit-render__BaseAddress='http://localhost:5066/'" \
+              "  \$env:Render__Engines__oxykit-render__ApiKey='your-render-key'" \
+              "  \$env:ASPNETCORE_URLS='http://localhost:5077'" \
+              "  .\\OxyKit.Flow.exe" \
+              "" \
+              "Docs: https://oxykit.dev" \
+              > "${out}/README.txt"
+            zip_name="OxyKit.Flow-${VERSION}-${rid}.zip"
+            (cd "${out}" && zip -r "../../dist/${zip_name}" .)
+          done
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.zip

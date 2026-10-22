@@ -1,0 +1,14 @@
+---
+description: OxyKit.Flow agent defaults - prefer AGENTS.md
+alwaysApply: true
+---
+
+# OxyKit.Flow agent defaults
+
+- Start from `AGENTS.md` (solution root next to `OxyKit.Flow.slnx`).
+- Layout: `src/OxyKit.Flow/` + `tests/` + `hoppscotch/` (suite standard).
+- Host DX: FastEndpoints + ErrorOr + `FlowEndpoint` (same family as Mail). Render stays Minimal APIs (resources/AOT).
+- **Orchestrator only** - accept/persist jobs, render via `OxyKit.Render.Client`, deliver via `IOutputProvider` (`file`, `mail`). No in-process document generators.
+- Never reference `OxyKit.Render.Core` - Client (+ Contracts) only. Mail is HTTP (`X-Api-Key`), not a project reference.
+- Extend delivery with new `IOutputProvider` + DI in `Program.cs`. HTTP jobs: `Features/Jobs/` + `Infrastructure/Job`.
+- Needs OxyKit.Render Local (`OxyKit.Render:BaseAddress` / `ApiKey`). Mail output needs `OxyKit.Mail:ApiKey`. Flow API key: `Security:ApiKey`.

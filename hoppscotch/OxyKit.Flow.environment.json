@@ -1,0 +1,20 @@
+{
+  "name": "OxyKit.Flow Local",
+  "variables": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5077",
+      "secret": false
+    },
+    {
+      "key": "apiKey",
+      "value": "dev-flow-key",
+      "secret": true
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "secret": false
+    }
+  ]
+}

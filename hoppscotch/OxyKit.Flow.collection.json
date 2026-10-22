@@ -1,0 +1,204 @@
+{
+  "v": 12,
+  "name": "OxyKit.Flow",
+  "variables": [],
+  "description": "Local smoke for OxyKit.Flow job API. Requires OxyKit.Render on :5066 for job completion. Import with OxyKit.Flow.environment.json; run folder order.",
+  "folders": [
+    {
+      "v": 12,
+      "name": "Health & Security",
+      "variables": [],
+      "description": "Anonymous health + API-key gate.",
+      "folders": [],
+      "requests": [
+        {
+          "v": "17",
+          "id": "flow-health",
+          "name": "GET /health",
+          "method": "GET",
+          "endpoint": "<<baseUrl>>/health",
+          "params": [],
+          "headers": [],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200\", () => {\n  pw.expect(pw.response.status).toBe(200);\n});\npw.test(\"status ok\", () => {\n  pw.expect(pw.response.body.status).toBe(\"ok\");\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": null
+        },
+        {
+          "v": "17",
+          "id": "flow-jobs-unauthorized",
+          "name": "POST /jobs without key \u2192 401",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/",
+          "params": [],
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 401\", () => {\n  pw.expect(pw.response.status).toBe(401);\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\n  \"name\": \"hoppscotch-smoke\",\n  \"render\": {\n    \"input\": \"table\",\n    \"output\": \"html\",\n    \"body\": {\n      \"sheets\": [\n        {\n          \"name\": \"Orders\",\n          \"headers\": [\n            \"Id\",\n            \"Customer\"\n          ],\n          \"rows\": [\n            [\n              1,\n              \"Acme\"\n            ],\n            [\n              2,\n              \"Beta\"\n            ]\n          ]\n        }\n      ]\n    }\n  },\n  \"outputs\": [\n    {\n      \"provider\": \"file\",\n      \"destination\": \"output/hoppscotch_smoke.html\"\n    }\n  ]\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": null
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "preRequestScript": "",
+      "testScript": ""
+    },
+    {
+      "v": 12,
+      "name": "Jobs",
+      "variables": [],
+      "description": "Create (file output) + get by id. Completion needs Render running.",
+      "folders": [],
+      "requests": [
+        {
+          "v": "17",
+          "id": "flow-job-create",
+          "name": "POST /jobs (table\u2192html \u2192 file)",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Idempotency-Key",
+              "value": "hoppscotch-smoke-1",
+              "active": true,
+              "description": "Change to re-create; same key returns existing job"
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200 or 201\", () => {\n  const s = pw.response.status;\n  pw.expect(s === 200 || s === 201).toBe(true);\n});\npw.test(\"returns job id\", () => {\n  pw.expect(typeof pw.response.body.id).toBe(\"string\");\n  pw.env.set(\"jobId\", pw.response.body.id);\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\n  \"name\": \"hoppscotch-smoke\",\n  \"render\": {\n    \"input\": \"table\",\n    \"output\": \"html\",\n    \"body\": {\n      \"sheets\": [\n        {\n          \"name\": \"Orders\",\n          \"headers\": [\n            \"Id\",\n            \"Customer\"\n          ],\n          \"rows\": [\n            [\n              1,\n              \"Acme\"\n            ],\n            [\n              2,\n              \"Beta\"\n            ]\n          ]\n        }\n      ]\n    }\n  },\n  \"outputs\": [\n    {\n      \"provider\": \"file\",\n      \"destination\": \"output/hoppscotch_smoke.html\"\n    }\n  ]\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "Idempotency-Key optional. Re-run with a new key to create another job."
+        },
+        {
+          "v": "17",
+          "id": "flow-job-get",
+          "name": "GET /jobs/{id}",
+          "method": "GET",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/<<jobId>>",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200\", () => {\n  pw.expect(pw.response.status).toBe(200);\n});\npw.test(\"has status\", () => {\n  pw.expect(typeof pw.response.body.status).toBe(\"string\");\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": null
+        },
+        {
+          "v": "17",
+          "id": "flow-job-bad",
+          "name": "POST /jobs missing outputs \u2192 400",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 400\", () => {\n  pw.expect(pw.response.status).toBe(400);\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\"name\": \"bad\", \"render\": {\"input\": \"table\", \"output\": \"html\", \"body\": {}}, \"outputs\": []}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": null
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "preRequestScript": "",
+      "testScript": ""
+    }
+  ],
+  "requests": [],
+  "auth": {
+    "authType": "none",
+    "authActive": true
+  },
+  "headers": [],
+  "preRequestScript": "",
+  "testScript": ""
+}

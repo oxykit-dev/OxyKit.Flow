@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>OxyKit.Flow.Abstractions</RootNamespace>
+    <Description>Extension contracts for OxyKit.Flow (render engines, artifacts).</Description>
+    <PackageId>OxyKit.Flow.Abstractions</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>OxyKit</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://oxykit.dev</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/oxykit-dev/OxyKit.Flow</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>oxykit;flow;abstractions</PackageTags>
+    <!-- No NuGet for Flow yet — Abstractions ships in-repo / with the host zip. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OxyKit.Flow.Abstractions/OxyKit.Flow.Abstractions.csproj" />
+    <Project Path="src/OxyKit.Flow/OxyKit.Flow.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj" />
+  </Folder>
+</Solution>
