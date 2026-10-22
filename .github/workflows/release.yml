@@ -60,20 +60,12 @@ jobs:
               -o "${out}"
             rm -f "${out}/appsettings.Development.json"
             # Clear secret-shaped defaults from the publish output.
-            python3 -c "
-import json, pathlib
-p = pathlib.Path('${out}') / 'appsettings.json'
-data = json.loads(p.read_text())
-if 'Security' in data:
-    data['Security']['ApiKey'] = ''
-for eng in data.get('Render', {}).get('Engines', {}).values():
-    if isinstance(eng, dict) and 'ApiKey' in eng:
-        eng['ApiKey'] = ''
-mail = data.get('OxyKit.Mail', {})
-if isinstance(mail, dict) and 'ApiKey' in mail:
-    mail['ApiKey'] = ''
-p.write_text(json.dumps(data, indent=2) + chr(10))
-"
+            jq '
+              .Security.ApiKey = ""
+              | .Render.Engines |= with_entries(.value.ApiKey = "")
+              | ."OxyKit.Mail".ApiKey = ""
+            ' "${out}/appsettings.json" > "${out}/appsettings.json.tmp"
+            mv "${out}/appsettings.json.tmp" "${out}/appsettings.json"
             printf '%s\n' \
               "OxyKit.Flow ${VERSION} (${rid})" \
               "" \
