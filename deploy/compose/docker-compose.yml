@@ -1,0 +1,104 @@
+# OxyKit golden path: Render + Mail + Flow (external SMTP via .env).
+# From suite root: cp .env.example .env && docker compose up --build
+# Optional UI: docker compose --profile ui up --build
+
+services:
+  render:
+    build:
+      context: ./OxyKit.Render
+      dockerfile: ../docker/render.Dockerfile
+    ports:
+      - "5066:5066"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5066
+      Security__ApiKey: ${RENDER_API_KEY:-dev-local-key}
+      Security__ApiKeyHeader: X-OxyKit-Render-Key
+      # Flow reaches Render over the Docker network, not loopback
+      Security__RequireLocalRequests: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5066/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  mail:
+    build:
+      context: ./OxyKit.Mail
+      dockerfile: ../docker/mail.Dockerfile
+    ports:
+      - "5026:5026"
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5026
+      DatabaseProvider: SQLite
+      ConnectionStrings__SQLiteConnection: Data Source=/data/OxyKit.Mail.db
+    volumes:
+      - mail-data:/data
+    # /health may be 503 when external SMTP is unreachable; still treat process as up
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:5026/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  flow:
+    build:
+      context: .
+      dockerfile: ./docker/flow.Dockerfile
+    ports:
+      - "5077:5077"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5077
+      DatabaseProvider: SQLite
+      ConnectionStrings__SQLiteConnection: Data Source=/data/oxykit-flow.db
+      Security__ApiKey: ${FLOW_API_KEY:-dev-flow-key}
+      Security__ApiKeyHeader: X-OxyKit-Flow-Key
+      Render__Engines__oxykit-render__Kind: oxykit
+      Render__Engines__oxykit-render__BaseAddress: http://render:5066/
+      Render__Engines__oxykit-render__ApiKey: ${RENDER_API_KEY:-dev-local-key}
+      OxyKit.Mail__BaseAddress: http://mail:5026/
+      OxyKit.Mail__ApiKey: ${FLOW_MAIL_API_KEY:-}
+      OxyKit.Mail__ApiKeyHeader: X-Api-Key
+    volumes:
+      - flow-data:/data
+      - flow-output:/app/output
+    depends_on:
+      render:
+        condition: service_healthy
+      mail:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5077/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  mail-web:
+    profiles: ["ui"]
+    build:
+      context: ./oxykit-mail-web
+      dockerfile: ../docker/mail-web.Dockerfile
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:5026}
+        VITE_SIGNALR_HUB_URL: ${VITE_SIGNALR_HUB_URL:-http://localhost:5026/hubs}
+    ports:
+      - "5173:80"
+    depends_on:
+      mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mail-data:
+  flow-data:
+  flow-output:

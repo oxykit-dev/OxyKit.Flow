@@ -31,6 +31,7 @@ Companion engine: HTTP to OxyKit.Render via named `IDocumentRenderer` (default `
 | OxyKit.Render API | `../OxyKit.Render/AGENTS.md` |
 | Tests | `tests/OxyKit.Flow.Tests/` |
 | Hoppscotch | `hoppscotch/` (do not paste JSON into chat) |
+| Compose E2E | `deploy/compose/` + `.github/workflows/compose-e2e.yml` (suite-root `scripts/compose-e2e.sh`) |
 
 Ignore `bin/`, `obj/`, `data/`, runtime `output/`.
 

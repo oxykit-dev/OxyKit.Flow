@@ -1,0 +1,65 @@
+name: Compose E2E
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: compose-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compose-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Flow
+        uses: actions/checkout@v4
+        with:
+          path: OxyKit.Flow
+
+      - name: Checkout Render
+        uses: actions/checkout@v4
+        with:
+          repository: oxykit-dev/OxyKit.Render
+          path: OxyKit.Render
+          token: ${{ secrets.SUITE_CHECKOUT_PAT || github.token }}
+
+      - name: Checkout Mail
+        uses: actions/checkout@v4
+        with:
+          repository: oxykit-dev/OxyKit.Mail
+          path: OxyKit.Mail
+          token: ${{ secrets.SUITE_CHECKOUT_PAT || github.token }}
+
+      - name: Materialize suite compose layout
+        run: |
+          set -euo pipefail
+          cp OxyKit.Flow/deploy/compose/docker-compose.yml .
+          cp -R OxyKit.Flow/deploy/compose/docker ./docker
+          mkdir -p scripts
+          cp OxyKit.Flow/deploy/compose/compose-e2e.sh scripts/compose-e2e.sh
+          chmod +x scripts/compose-e2e.sh
+          cp OxyKit.Flow/deploy/compose/.env.example .env
+          sed -i \
+            -e 's/change-me-to-a-jwt-signing-key-at-least-32-chars/compose-e2e-jwt-signing-key-32chars-min/' \
+            -e 's/your-username/e2e/' \
+            -e 's/your-password/e2e/' \
+            .env
+
+      - name: Golden path (Flow → Render → file + Mail accept)
+        env:
+          START_COMPOSE: "1"
+          RUN_MAIL: "1"
+          POLL_SECONDS: "120"
+        run: ./scripts/compose-e2e.sh
+
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color || true
