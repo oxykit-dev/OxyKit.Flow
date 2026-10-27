@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisLevel>latest</AnalysisLevel>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>OxyKit</Authors>
     <Description>OxyKit.Flow job orchestrator — render + deliver via HTTP engines and output providers.</Description>
     <PackageProjectUrl>https://oxykit.dev</PackageProjectUrl>
