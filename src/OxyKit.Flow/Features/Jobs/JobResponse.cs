@@ -4,6 +4,29 @@ using OxyKit.Flow.Services;
 
 namespace OxyKit.Flow.Features.Jobs;
 
+public sealed class JobDeliveryResponse
+{
+    public required int Ordinal { get; init; }
+    public required string Provider { get; init; }
+    public required string Destination { get; init; }
+    public required string Status { get; init; }
+    public string? ExternalId { get; init; }
+    public string? LastError { get; init; }
+    public DateTime? CompletedAt { get; init; }
+
+    public static JobDeliveryResponse From(JobDelivery delivery) =>
+        new()
+        {
+            Ordinal = delivery.Ordinal,
+            Provider = delivery.Provider,
+            Destination = delivery.Destination,
+            Status = delivery.Status.ToString(),
+            ExternalId = delivery.ExternalId,
+            LastError = delivery.LastError,
+            CompletedAt = delivery.CompletedAt,
+        };
+}
+
 public sealed class JobResponse
 {
     public required Guid Id { get; init; }
@@ -14,6 +37,7 @@ public sealed class JobResponse
     public required string RenderInput { get; init; }
     public required string RenderOutput { get; init; }
     public required IReadOnlyList<DeliveryRequest> Outputs { get; init; }
+    public required IReadOnlyList<JobDeliveryResponse> Deliveries { get; init; }
     public required int AttemptCount { get; init; }
     public required int MaxAttempts { get; init; }
     public string? LastError { get; init; }
@@ -21,7 +45,7 @@ public sealed class JobResponse
     public required DateTime UpdatedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
 
-    public static JobResponse From(Job job) =>
+    public static JobResponse From(Job job, IReadOnlyList<JobDelivery> deliveries) =>
         new()
         {
             Id = job.Id,
@@ -32,6 +56,7 @@ public sealed class JobResponse
             RenderInput = job.RenderInput,
             RenderOutput = job.RenderOutput,
             Outputs = JobDeliverySerializer.Deserialize(job.OutputsJson),
+            Deliveries = deliveries.Select(JobDeliveryResponse.From).ToList(),
             AttemptCount = job.AttemptCount,
             MaxAttempts = job.MaxAttempts,
             LastError = job.LastError,

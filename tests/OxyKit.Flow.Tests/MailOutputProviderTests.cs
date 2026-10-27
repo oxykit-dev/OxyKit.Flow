@@ -14,6 +14,9 @@ namespace OxyKit.Flow.Tests;
 /// </summary>
 public sealed class MailOutputProviderTests
 {
+    private static readonly DeliveryContext SampleContext =
+        new() { JobId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), Ordinal = 0 };
+
     [Theory]
     [InlineData(HttpStatusCode.OK, "sent")]
     [InlineData(HttpStatusCode.Accepted, "accepted")]
@@ -29,13 +32,16 @@ public sealed class MailOutputProviderTests
         );
         var sut = CreateSut(handler);
 
-        await sut.Invoking(s =>
-                s.SendAsync(SampleArtifact(), SampleRequest(), TestContext.Current.CancellationToken)
-            )
-            .Should()
-            .NotThrowAsync();
+        var result = await sut.SendAsync(
+            SampleArtifact(),
+            SampleRequest(),
+            SampleContext,
+            TestContext.Current.CancellationToken
+        );
 
+        result.ExternalId.Should().Be("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         handler.LastPath.Should().Be("api/v1/email/send");
+        handler.LastIdempotencyKey.Should().Be(SampleContext.IdempotencyKey);
         using var doc = JsonDocument.Parse(handler.LastBody!);
         var root = doc.RootElement;
         root.GetProperty("to").GetString().Should().Be("ops@example.com");
@@ -64,6 +70,7 @@ public sealed class MailOutputProviderTests
                 Provider = "mail",
                 Destination = "ops@example.com",
             },
+            SampleContext,
             TestContext.Current.CancellationToken
         );
 
@@ -84,7 +91,12 @@ public sealed class MailOutputProviderTests
         var sut = CreateSut(handler);
 
         await sut.Invoking(s =>
-                s.SendAsync(SampleArtifact(), SampleRequest(), TestContext.Current.CancellationToken)
+                s.SendAsync(
+                    SampleArtifact(),
+                    SampleRequest(),
+                    SampleContext,
+                    TestContext.Current.CancellationToken
+                )
             )
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -101,7 +113,12 @@ public sealed class MailOutputProviderTests
         var sut = CreateSut(handler);
 
         await sut.Invoking(s =>
-                s.SendAsync(SampleArtifact(), SampleRequest(), TestContext.Current.CancellationToken)
+                s.SendAsync(
+                    SampleArtifact(),
+                    SampleRequest(),
+                    SampleContext,
+                    TestContext.Current.CancellationToken
+                )
             )
             .Should()
             .ThrowAsync<InvalidOperationException>();
@@ -117,7 +134,12 @@ public sealed class MailOutputProviderTests
         var sut = CreateSut(handler);
 
         await sut.Invoking(s =>
-                s.SendAsync(SampleArtifact(), SampleRequest(), TestContext.Current.CancellationToken)
+                s.SendAsync(
+                    SampleArtifact(),
+                    SampleRequest(),
+                    SampleContext,
+                    TestContext.Current.CancellationToken
+                )
             )
             .Should()
             .ThrowAsync<HttpRequestException>();
@@ -137,6 +159,7 @@ public sealed class MailOutputProviderTests
                 s.SendAsync(
                     SampleArtifact(),
                     new DeliveryRequest { Provider = "mail", Destination = "  " },
+                    SampleContext,
                     TestContext.Current.CancellationToken
                 )
             )
@@ -157,7 +180,12 @@ public sealed class MailOutputProviderTests
         );
 
         await sut.Invoking(s =>
-                s.SendAsync(SampleArtifact(), SampleRequest(), TestContext.Current.CancellationToken)
+                s.SendAsync(
+                    SampleArtifact(),
+                    SampleRequest(),
+                    SampleContext,
+                    TestContext.Current.CancellationToken
+                )
             )
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -209,6 +237,7 @@ public sealed class MailOutputProviderTests
     {
         public string? LastPath { get; private set; }
         public string? LastBody { get; private set; }
+        public string? LastIdempotencyKey { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -217,6 +246,9 @@ public sealed class MailOutputProviderTests
         {
             if (request.RequestUri is not null)
                 LastPath = request.RequestUri.PathAndQuery.TrimStart('/');
+
+            if (request.Headers.TryGetValues("Idempotency-Key", out var values))
+                LastIdempotencyKey = values.FirstOrDefault();
 
             if (request.Content is not null)
                 LastBody = await request.Content.ReadAsStringAsync(cancellationToken);

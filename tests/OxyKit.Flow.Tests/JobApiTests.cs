@@ -119,6 +119,11 @@ public sealed class JobApiTests : IClassFixture<FlowWebApplicationFactory>, IDis
         job.GetProperty("renderEngine").GetString().Should().Be("oxykit-render");
         job.GetProperty("renderInput").GetString().Should().Be("table");
         job.GetProperty("renderOutput").GetString().Should().Be("html");
+        var deliveries = job.GetProperty("deliveries");
+        deliveries.GetArrayLength().Should().Be(1);
+        deliveries[0].GetProperty("ordinal").GetInt32().Should().Be(0);
+        deliveries[0].GetProperty("provider").GetString().Should().Be("file");
+        deliveries[0].GetProperty("status").GetString().Should().Be("Pending");
     }
 
     [Fact]

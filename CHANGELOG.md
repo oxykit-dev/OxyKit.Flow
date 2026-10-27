@@ -9,17 +9,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Multi-provider job store: `OxyKit.Flow.Infrastructure` + `Infrastructure.Sqlite` / `Infrastructure.Postgres` (Mail-aligned `DatabaseProvider` switch)
 - Atomic job claim: SQLite write transaction; PostgreSQL `FOR UPDATE SKIP LOCKED` (multi-worker safe)
 - EF migrations per provider (`scripts/AddEfMigration.*.ps1`); startup applies `Migrate()` instead of `EnsureCreated`
+- Per-output `JobDelivery` checkpoints — retries skip already-succeeded outputs; job GET includes `deliveries`
+- Mail output sends `Idempotency-Key: {jobId:N}:{ordinal}` and stores Mail `emailId` on the delivery
 
 ### Changed
 
 - Connection strings: `SQLiteConnection` / `PostgreSQLConnection` (replaces `ConnectionStrings:Flow`)
 - Default remains **SQLite** for local / Compose; set `DatabaseProvider=PostgreSQL` for shared durable store
 - Local DBs created with `EnsureCreated` are not migration-aware — delete `data/oxykit-flow.db` (or Compose `flow-data` volume) once after upgrading
+- `IOutputProvider.SendAsync` takes `DeliveryContext` and returns `DeliveryResult`
+- Job executor skips render when all deliveries are already succeeded; idempotency races require a unique-constraint violation (not any `DbUpdateException`)
+- Job executor asserts `JobDelivery.Provider` matches `OutputsJson` before send
 
 ### Planned
 
 - Per-output **zip packaging** (optional `zip` on a delivery): wrap the single render `Artifact` via `System.IO.Compression` (`ZipArchive`) before `file` / `mail` / `ftp` / `sftp` — not a separate output provider. Password-protected zip and multi-entry archives deferred.
-- Per-output delivery state + Mail idempotency keys (safe retries under distribution)
+- Render artifact cache (avoid re-render on delivery-only retry)
 
 ## [0.1.0] - 2026-10-22
 

@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
@@ -9,6 +10,7 @@ namespace OxyKit.Flow.Outputs;
 /// <see cref="DeliveryRequest.Destination"/> is the To address (comma-separated allowed).
 /// Mail owns SMTP delivery; a 2xx with status sent/accepted/scheduled means the job
 /// output succeeded and Flow must not re-send for SMTP flakiness.
+/// Sends <c>Idempotency-Key</c> from <see cref="DeliveryContext"/> so Mail dedupes retries.
 /// </summary>
 public sealed class MailOutputProvider(
     IHttpClientFactory httpClientFactory,
@@ -35,9 +37,10 @@ public sealed class MailOutputProvider(
 
     public string Name => "mail";
 
-    public async Task SendAsync(
+    public async Task<DeliveryResult> SendAsync(
         Artifact artifact,
         DeliveryRequest request,
+        DeliveryContext context,
         CancellationToken cancellationToken = default
     )
     {
@@ -76,12 +79,13 @@ public sealed class MailOutputProvider(
         );
 
         var http = httpClientFactory.CreateClient(HttpClientName);
-        using var response = await http.PostAsJsonAsync(
-            "api/v1/email/send",
-            payload,
-            JsonOptions,
-            cancellationToken
-        );
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/v1/email/send")
+        {
+            Content = JsonContent.Create(payload, options: JsonOptions),
+        };
+        httpRequest.Headers.TryAddWithoutValidation("Idempotency-Key", context.IdempotencyKey);
+
+        using var response = await http.SendAsync(httpRequest, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -112,14 +116,17 @@ public sealed class MailOutputProvider(
         }
 
         logger.LogInformation(
-            "OxyKit.Mail accepted artifact {FileName} ({ContentType}) to {To}: emailId={EmailId} status={Status} http={HttpStatus}",
+            "OxyKit.Mail accepted artifact {FileName} ({ContentType}) to {To}: emailId={EmailId} status={Status} http={HttpStatus} idempotencyKey={IdempotencyKey}",
             fileName,
             artifact.ContentType,
             request.Destination,
             acceptance.EmailId,
             acceptance.Status,
-            (int)response.StatusCode
+            (int)response.StatusCode,
+            context.IdempotencyKey
         );
+
+        return DeliveryResult.WithExternalId(acceptance.EmailId.ToString("D"));
     }
 
     private static string ApplyTemplate(string template, string fileName) =>

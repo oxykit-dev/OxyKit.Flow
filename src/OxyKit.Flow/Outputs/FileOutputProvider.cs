@@ -4,9 +4,10 @@ public sealed class FileOutputProvider : IOutputProvider
 {
     public string Name => "file";
 
-    public async Task SendAsync(
+    public async Task<DeliveryResult> SendAsync(
         Artifact artifact,
         DeliveryRequest request,
+        DeliveryContext context,
         CancellationToken cancellationToken = default
     )
     {
@@ -19,5 +20,6 @@ public sealed class FileOutputProvider : IOutputProvider
             Directory.CreateDirectory(directory);
 
         await File.WriteAllBytesAsync(destination, artifact.Content, cancellationToken);
+        return DeliveryResult.Empty;
     }
 }

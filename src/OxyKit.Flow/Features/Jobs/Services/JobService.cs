@@ -12,6 +12,7 @@ namespace OxyKit.Flow.Features.Jobs.Services;
 public sealed class CreateJobResult
 {
     public required Job Job { get; init; }
+    public required IReadOnlyList<JobDelivery> Deliveries { get; init; }
     public required bool Created { get; init; }
 }
 
@@ -63,13 +64,22 @@ public sealed class JobService(
                 .Jobs.AsNoTracking()
                 .FirstOrDefaultAsync(j => j.IdempotencyKey == key, cancellationToken);
             if (existing is not null)
-                return new CreateJobResult { Job = existing, Created = false };
+            {
+                var existingDeliveries = await LoadDeliveriesAsync(existing.Id, cancellationToken);
+                return new CreateJobResult
+                {
+                    Job = existing,
+                    Deliveries = existingDeliveries,
+                    Created = false,
+                };
+            }
         }
 
         var now = DateTime.UtcNow;
+        var jobId = Guid.NewGuid();
         var job = new Job
         {
-            Id = Guid.NewGuid(),
+            Id = jobId,
             Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
             IdempotencyKey = key,
             Status = JobStatus.Queued,
@@ -83,30 +93,82 @@ public sealed class JobService(
             UpdatedAt = now,
         };
 
+        var deliveryRows = new List<JobDelivery>(outputs.Count);
+        for (var i = 0; i < outputs.Count; i++)
+        {
+            deliveryRows.Add(
+                new JobDelivery
+                {
+                    Id = Guid.NewGuid(),
+                    JobId = jobId,
+                    Ordinal = i,
+                    Provider = outputs[i].Provider,
+                    Destination = outputs[i].Destination,
+                    Status = JobDeliveryStatus.Pending,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                }
+            );
+        }
+
         db.Jobs.Add(job);
+        db.JobDeliveries.AddRange(deliveryRows);
+
         try
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException) when (key is not null)
+        catch (DbUpdateException ex) when (key is not null && ex.IsUniqueConstraintViolation())
         {
             db.Entry(job).State = EntityState.Detached;
+            foreach (var row in deliveryRows)
+                db.Entry(row).State = EntityState.Detached;
+
             var raced = await db
                 .Jobs.AsNoTracking()
                 .FirstOrDefaultAsync(j => j.IdempotencyKey == key, cancellationToken);
             if (raced is not null)
-                return new CreateJobResult { Job = raced, Created = false };
+            {
+                var racedDeliveries = await LoadDeliveriesAsync(raced.Id, cancellationToken);
+                return new CreateJobResult
+                {
+                    Job = raced,
+                    Deliveries = racedDeliveries,
+                    Created = false,
+                };
+            }
+
             throw;
         }
 
-        return new CreateJobResult { Job = job, Created = true };
+        return new CreateJobResult
+        {
+            Job = job,
+            Deliveries = deliveryRows,
+            Created = true,
+        };
     }
 
-    public async Task<ErrorOr<Job>> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ErrorOr<(Job Job, IReadOnlyList<JobDelivery> Deliveries)>> GetAsync(
+        Guid id,
+        CancellationToken cancellationToken = default
+    )
     {
         var job = await db.Jobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
-        return job is null
-            ? Error.NotFound(description: "Job not found.")
-            : job;
+        if (job is null)
+            return Error.NotFound(description: "Job not found.");
+
+        var deliveries = await LoadDeliveriesAsync(id, cancellationToken);
+        return (job, deliveries);
     }
+
+    private async Task<IReadOnlyList<JobDelivery>> LoadDeliveriesAsync(
+        Guid jobId,
+        CancellationToken cancellationToken
+    ) =>
+        await db
+            .JobDeliveries.AsNoTracking()
+            .Where(d => d.JobId == jobId)
+            .OrderBy(d => d.Ordinal)
+            .ToListAsync(cancellationToken);
 }

@@ -14,9 +14,10 @@ public sealed class FtpOutputProvider(
 {
     public string Name => "ftp";
 
-    public async Task SendAsync(
+    public async Task<DeliveryResult> SendAsync(
         Artifact artifact,
         DeliveryRequest request,
+        DeliveryContext context,
         CancellationToken cancellationToken = default
     )
     {
@@ -85,5 +86,7 @@ public sealed class FtpOutputProvider(
             if (client.IsConnected)
                 await client.Disconnect(cancellationToken);
         }
+
+        return DeliveryResult.Empty;
     }
 }

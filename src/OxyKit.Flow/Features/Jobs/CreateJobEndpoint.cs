@@ -46,7 +46,7 @@ public sealed class CreateJobEndpoint(JobService jobs)
         if (await SendOnErrorAsync(result, ct))
             return;
 
-        var body = JobResponse.From(result.Value.Job);
+        var body = JobResponse.From(result.Value.Job, result.Value.Deliveries);
         if (result.Value.Created)
             await Send.CreatedAtAsync<GetJobEndpoint>(new { id = body.Id }, body, cancellation: ct);
         else

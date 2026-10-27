@@ -39,7 +39,7 @@ Ignore `bin/`, `obj/`, `data/`, runtime `output/`.
 ```text
 OxyKit.Flow.slnx
 src/OxyKit.Flow.Abstractions/              IDocumentRenderer, RenderRequest, Artifact (packable)
-src/OxyKit.Flow.Infrastructure/            Job, JobStatus, FlowDbContext, IJobClaimStore
+src/OxyKit.Flow.Infrastructure/            Job, JobDelivery, FlowDbContext, IJobClaimStore
 src/OxyKit.Flow.Infrastructure.Sqlite/     UseSqlite + transaction claim + Migrations
 src/OxyKit.Flow.Infrastructure.Postgres/   UseNpgsql + SKIP LOCKED claim + Migrations
 src/OxyKit.Flow/
@@ -58,9 +58,9 @@ hoppscotch/
 
 ## Pipeline
 
-`POST /api/v1/jobs` (+ optional `Idempotency-Key`) -> persist `Job` (Queued) ->
+`POST /api/v1/jobs` (+ optional `Idempotency-Key`) -> persist `Job` + `JobDelivery` rows (Queued) ->
 `IJobClaimStore` claims (SQLite tx / Postgres `SKIP LOCKED`) -> `JobExecutor` (resolve `IDocumentRenderer` by `render.engine`) ->
-each `IOutputProvider` -> `Completed` / re-queue / `DeadLettered`.
+each pending `IOutputProvider` (skip succeeded; Mail sends `Idempotency-Key`) -> `Completed` / re-queue / `DeadLettered`.
 
 | Config | Values |
 |--------|--------|
@@ -97,6 +97,7 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 - Render routing: job `render.engine` == `IDocumentRenderer.Name` (default `oxykit-render`)
 - Output routing: job `provider` == `IOutputProvider.Name`
 - Client idempotency via unique `Idempotency-Key`; processor claim via `IJobClaimStore` (provider-specific) + status
+- Delivery checkpoints: `JobDelivery` per output; retries skip `Succeeded`; Mail key `{jobId:N}:{ordinal}`
 - **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`)
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets

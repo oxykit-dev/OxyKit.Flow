@@ -6,6 +6,8 @@ public sealed class FlowDbContext(DbContextOptions<FlowDbContext> options) : DbC
 {
     public DbSet<Job> Jobs => Set<Job>();
 
+    public DbSet<JobDelivery> JobDeliveries => Set<JobDelivery>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var job = modelBuilder.Entity<Job>();
@@ -26,5 +28,21 @@ public sealed class FlowDbContext(DbContextOptions<FlowDbContext> options) : DbC
 
         job.HasIndex(j => j.Status);
         job.HasIndex(j => j.CreatedAt);
+
+        job.HasMany<JobDelivery>()
+            .WithOne(d => d.Job)
+            .HasForeignKey(d => d.JobId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        var delivery = modelBuilder.Entity<JobDelivery>();
+        delivery.ToTable("JobDeliveries");
+        delivery.HasKey(d => d.Id);
+        delivery.Property(d => d.Provider).HasMaxLength(64).IsRequired();
+        delivery.Property(d => d.Destination).HasMaxLength(2000).IsRequired();
+        delivery.Property(d => d.ExternalId).HasMaxLength(128);
+        delivery.Property(d => d.LastError).HasMaxLength(4000);
+        delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(32);
+        delivery.HasIndex(d => new { d.JobId, d.Ordinal }).IsUnique();
+        delivery.HasIndex(d => d.Status);
     }
 }

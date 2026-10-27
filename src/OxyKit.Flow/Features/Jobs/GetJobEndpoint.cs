@@ -27,6 +27,7 @@ public sealed class GetJobEndpoint(JobService jobs) : FlowEndpoint<GetJobRequest
         if (await SendOnErrorAsync(result, ct))
             return;
 
-        await Send.OkAsync(JobResponse.From(result.Value), cancellation: ct);
+        var (job, deliveries) = result.Value;
+        await Send.OkAsync(JobResponse.From(job, deliveries), cancellation: ct);
     }
 }

@@ -15,9 +15,10 @@ public sealed class SftpOutputProvider(
 {
     public string Name => "sftp";
 
-    public async Task SendAsync(
+    public async Task<DeliveryResult> SendAsync(
         Artifact artifact,
         DeliveryRequest request,
+        DeliveryContext context,
         CancellationToken cancellationToken = default
     )
     {
@@ -89,6 +90,8 @@ public sealed class SftpOutputProvider(
             if (client.IsConnected)
                 client.Disconnect();
         }
+
+        return DeliveryResult.Empty;
     }
 
     private static AuthenticationMethod[] BuildAuthMethods(TransferProfileOptions profile)
