@@ -37,7 +37,7 @@ Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-ke
 dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 ```
 
-**Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → run folders in order (Render required for job completion).
+**Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), then optional **Jobs — mail** (Render + Mail + `OxyKit.Mail:ApiKey` / compose `FLOW_MAIL_API_KEY`).
 
 Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Layout and constraints: [AGENTS.md](./AGENTS.md).
 

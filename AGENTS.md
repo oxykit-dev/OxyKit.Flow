@@ -98,7 +98,8 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 - Output routing: job `provider` == `IOutputProvider.Name`
 - Client idempotency via unique `Idempotency-Key`; processor claim via `IJobClaimStore` (provider-specific) + status
 - Delivery checkpoints: `JobDelivery` per output; retries skip `Succeeded`; Mail key `{jobId:N}:{ordinal}`
-- **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`)
+- **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`). Requires `OxyKit.Mail:ApiKey` (compose: `FLOW_MAIL_API_KEY` after Mail bootstrap + Flow restart) — empty key → mail deliveries fail
+- **file / ftp / sftp:** checkpoint skip on retry; **no sink-level idempotency** — crash after a successful write/upload but before Flow saves `Succeeded` can duplicate on retry (Mail hole closed via `Idempotency-Key`)
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets
 - `Security:ApiKey` required at startup (ValidateOnStart; not the placeholder)
@@ -127,7 +128,7 @@ dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 ```
 
 Dev key: `X-OxyKit-Flow-Key: dev-flow-key`.  
-Hoppscotch: import `hoppscotch/*`, env **OxyKit.Flow Local**, run folders in order (Render required for completion).
+Hoppscotch: import `hoppscotch/*`, env **OxyKit.Flow Local**, run folders in order — **Jobs — file** (Render) then optional **Jobs — mail** (Render + Mail + `mailTo` / Flow Mail API key).
 
 ## Docs policy
 

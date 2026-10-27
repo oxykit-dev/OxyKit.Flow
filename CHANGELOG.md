@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - EF migrations per provider (`scripts/AddEfMigration.*.ps1`); startup applies `Migrate()` instead of `EnsureCreated`
 - Per-output `JobDelivery` checkpoints — retries skip already-succeeded outputs; job GET includes `deliveries`
 - Mail output sends `Idempotency-Key: {jobId:N}:{ordinal}` and stores Mail `emailId` on the delivery
+- Hoppscotch **Jobs — mail** folder (canonical Flow→Render→Mail smoke; env `mailTo` / `mailJobId`)
 
 ### Changed
 

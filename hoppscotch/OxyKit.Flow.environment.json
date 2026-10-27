@@ -15,6 +15,16 @@
       "key": "jobId",
       "value": "",
       "secret": false
+    },
+    {
+      "key": "mailJobId",
+      "value": "",
+      "secret": false
+    },
+    {
+      "key": "mailTo",
+      "value": "you@example.com",
+      "secret": false
     }
   ]
 }

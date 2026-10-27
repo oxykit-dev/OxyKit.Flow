@@ -2,7 +2,7 @@
   "v": 12,
   "name": "OxyKit.Flow",
   "variables": [],
-  "description": "Local smoke for OxyKit.Flow job API. Requires OxyKit.Render on :5066 for job completion. Import with OxyKit.Flow.environment.json; run folder order.",
+  "description": "Local smoke for OxyKit.Flow job API. File jobs need Render on :5066. Mail folder also needs Mail on :5026 and OxyKit.Mail:ApiKey on Flow (FLOW_MAIL_API_KEY in compose). Import with OxyKit.Flow.environment.json; run folders in order.",
   "folders": [
     {
       "v": 12,
@@ -73,9 +73,9 @@
     },
     {
       "v": 12,
-      "name": "Jobs",
+      "name": "Jobs \u2014 file",
       "variables": [],
-      "description": "Create (file output) + get by id. Completion needs Render running.",
+      "description": "Zero-config smoke (file output). Completion needs Render running.",
       "folders": [],
       "requests": [
         {
@@ -182,6 +182,92 @@
           "requestVariables": [],
           "responses": {},
           "description": null
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "preRequestScript": "",
+      "testScript": ""
+    },
+    {
+      "v": 12,
+      "name": "Jobs \u2014 mail",
+      "variables": [],
+      "description": "Canonical golden path: Render \u2192 Mail. Requires Render, Mail, and Flow Mail API key (compose: set FLOW_MAIL_API_KEY after Mail bootstrap, restart flow). SMTP may be Unhealthy; Mail can still return accepted/queued.",
+      "folders": [],
+      "requests": [
+        {
+          "v": "17",
+          "id": "flow-job-create-mail",
+          "name": "POST /jobs (table\u2192html \u2192 mail)",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Idempotency-Key",
+              "value": "hoppscotch-mail-smoke-1",
+              "active": true,
+              "description": "Change to re-create; same key returns existing job"
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200 or 201\", () => {\n  const s = pw.response.status;\n  pw.expect(s === 200 || s === 201).toBe(true);\n});\npw.test(\"returns job id\", () => {\n  pw.expect(typeof pw.response.body.id).toBe(\"string\");\n  pw.env.set(\"mailJobId\", pw.response.body.id);\n});\npw.test(\"has mail delivery row\", () => {\n  const d = pw.response.body.deliveries;\n  pw.expect(Array.isArray(d) && d.length >= 1).toBe(true);\n  pw.expect(d[0].provider).toBe(\"mail\");\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\n  \"name\": \"hoppscotch-mail-smoke\",\n  \"render\": {\n    \"input\": \"table\",\n    \"output\": \"html\",\n    \"body\": {\n      \"sheets\": [\n        {\n          \"name\": \"Orders\",\n          \"headers\": [\n            \"Id\",\n            \"Customer\"\n          ],\n          \"rows\": [\n            [\n              1,\n              \"Acme\"\n            ],\n            [\n              2,\n              \"Beta\"\n            ]\n          ]\n        }\n      ]\n    }\n  },\n  \"outputs\": [\n    {\n      \"provider\": \"mail\",\n      \"destination\": \"<<mailTo>>\",\n      \"subject\": \"OxyKit.Flow Hoppscotch smoke\",\n      \"body\": \"Attached report from Flow golden-path smoke.\"\n    }\n  ]\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "Set env mailTo. Flow must have OxyKit.Mail:ApiKey. Poll GET with mailJobId until Completed (or inspect deliveries)."
+        },
+        {
+          "v": "17",
+          "id": "flow-job-get-mail",
+          "name": "GET /jobs/{mailJobId}",
+          "method": "GET",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/<<mailJobId>>",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200\", () => {\n  pw.expect(pw.response.status).toBe(200);\n});\npw.test(\"has status\", () => {\n  pw.expect(typeof pw.response.body.status).toBe(\"string\");\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "Re-run until status is Completed (or DeadLettered if Mail key/SMTP misconfigured)."
         }
       ],
       "auth": {

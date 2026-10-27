@@ -16,7 +16,7 @@ OxyKit.Flow is an **orchestrator with a job store**:
 2. **Persist** -- job row (Queued) in SQLite (single-node) or PostgreSQL (shared / multi-worker) so work survives restarts and duplicate posts
 3. **Render** -- call a named HTTP render engine (`IDocumentRenderer` from Abstractionsctions; default `oxykit-render` via Client; third-party adapters via `Kind=assembly` config)
 4. **Deliver** -- `IOutputProvider` implementations (`file`, `mail` via OxyKit.Mail, in-process `ftp`/`sftp`). Optional per-output zip wrap (BCL `System.IO.Compression`) planned — packaging, not a destination. Cloud retain / object storage = separate modules, not core.
-5. **Retry** -- atomic claim + per-output checkpoints (skip succeeded); Mail accepts `Idempotency-Key`; dead-letter after max attempts
+5. **Retry** -- atomic claim + per-output checkpoints (skip succeeded); Mail accepts `Idempotency-Key`; dead-letter after max attempts. file/ftp/sftp lack sink idempotency — duplicate delivery possible if Flow crashes after the sink succeeded but before checkpoint save.
 
 ## Non-goals
 
