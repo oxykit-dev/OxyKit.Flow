@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using OxyKit.Flow.Infrastructure;
 
 namespace OxyKit.Flow.Tests;
 
@@ -18,12 +16,11 @@ public sealed class FlowWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.UseSetting("DatabaseProvider", "SQLite");
+        builder.UseSetting("ConnectionStrings:SQLiteConnection", $"Data Source={_dbPath}");
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<IHostedService>();
-            services.RemoveAll<DbContextOptions<FlowDbContext>>();
-            services.RemoveAll<FlowDbContext>();
-            services.AddDbContext<FlowDbContext>(options => options.UseSqlite($"Data Source={_dbPath}"));
         });
     }
 

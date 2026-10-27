@@ -13,10 +13,10 @@ Render engines vary -- modern .NET (OxyKit.Render), legacy 32-bit Framework side
 OxyKit.Flow is an **orchestrator with a job store**:
 
 1. **Accept** -- HTTP job (render spec + outputs); optional `Idempotency-Key`
-2. **Persist** -- SQLite job row (Queued) so work survives restarts and duplicate posts
+2. **Persist** -- job row (Queued) in SQLite (single-node) or PostgreSQL (shared / multi-worker) so work survives restarts and duplicate posts
 3. **Render** -- call a named HTTP render engine (`IDocumentRenderer` from Abstractionsctions; default `oxykit-render` via Client; third-party adapters via `Kind=assembly` config)
-4. **Deliver** -- `IOutputProvider` implementations (`file`, `mail` via OxyKit.Mail, in-process `ftp`/`sftp`; cloud later)
-5. **Retry** -- claim/processing status like OxyKit.Mail; dead-letter after max attempts
+4. **Deliver** -- `IOutputProvider` implementations (`file`, `mail` via OxyKit.Mail, in-process `ftp`/`sftp`). Optional per-output zip wrap (BCL `System.IO.Compression`) planned — packaging, not a destination. Cloud retain / object storage = separate modules, not core.
+5. **Retry** -- atomic claim + processing status like OxyKit.Mail; dead-letter after max attempts
 
 ## Non-goals
 

@@ -1,5 +1,9 @@
 using FastEndpoints;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
+using OxyKit.Flow.Infrastructure;
+using OxyKit.Flow.Infrastructure.Postgres;
+using OxyKit.Flow.Infrastructure.Sqlite;
 using OxyKit.Flow.Security;
 using FlowSecurityOptions = OxyKit.Flow.Services.SecurityOptions;
 
@@ -29,5 +33,39 @@ public static class ServiceCollectionExtensions
             );
         services.AddAuthorization();
         return services;
+    }
+
+    /// <summary>
+    /// Registers EF + claim store for <c>SQLite</c> or <c>PostgreSQL</c> (Mail-aligned provider switch).
+    /// </summary>
+    public static IServiceCollection AddOxyKitFlowDatabase(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        var dbProvider = configuration["DatabaseProvider"] ?? "SQLite";
+
+        var migrationsAssembly = dbProvider switch
+        {
+            "PostgreSQL" => "OxyKit.Flow.Infrastructure.Postgres",
+            "SQLite" => "OxyKit.Flow.Infrastructure.Sqlite",
+            _ => throw new InvalidOperationException(
+                $"Unsupported DatabaseProvider '{dbProvider}'. Use SQLite or PostgreSQL."
+            ),
+        };
+
+        if (dbProvider == "PostgreSQL")
+            services.AddPostgresDataAccess(configuration, migrationsAssembly);
+        else
+            services.AddSqliteDataAccess(configuration, migrationsAssembly);
+
+        return services;
+    }
+
+    public static void ApplyOxyKitFlowMigrations(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FlowDbContext>();
+        db.Database.Migrate();
     }
 }

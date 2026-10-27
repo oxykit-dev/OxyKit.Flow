@@ -6,7 +6,7 @@ Token-efficient map. Prefer this over exploring the tree.
 
 **OxyKit** suite core. **MIT** · v0.1 — host releases as app zips only (no Flow NuGet). See `docs/RELEASE.md`.
 
-.NET 10 **Web host**: accepts **jobs** (render + deliver), persists them (SQLite), processes via a background queue. **Does not generate documents** in-process.
+.NET 10 **Web host**: accepts **jobs** (render + deliver), persists them (**SQLite** or **PostgreSQL**), processes via a background queue. **Does not generate documents** in-process.
 
 **Host pattern (DX):** FastEndpoints + ErrorOr + `FlowEndpoint` + `SendOnErrorAsync` — same family as **OxyKit.Mail** (not Minimal APIs).
 
@@ -23,6 +23,8 @@ Companion engine: HTTP to OxyKit.Render via named `IDocumentRenderer` (default `
 | Create / get jobs | `src/OxyKit.Flow/Features/Jobs/` |
 | Job service | `src/OxyKit.Flow/Features/Jobs/Services/JobService.cs` |
 | Execute + queue | `src/OxyKit.Flow/Services/JobExecutor.cs`, `JobQueueProcessor.cs` |
+| DB / claim | `src/OxyKit.Flow.Infrastructure/` + `Infrastructure.{Sqlite,Postgres}/` (`IJobClaimStore`) |
+| Migrations | `scripts/AddEfMigration.*.ps1`, provider `Migrations/` |
 | Abstractions | `src/OxyKit.Flow.Abstractions/` (`IDocumentRenderer`, `Artifact`) |
 | Render engines | `src/OxyKit.Flow/Renderers/` + `AddDocumentRenderers` (`Render:Engines`) |
 | Outputs | `src/OxyKit.Flow/Outputs/` |
@@ -36,12 +38,14 @@ Ignore `bin/`, `obj/`, `data/`, runtime `output/`.
 
 ```text
 OxyKit.Flow.slnx
-src/OxyKit.Flow.Abstractions/   IDocumentRenderer, RenderRequest, Artifact (packable)
+src/OxyKit.Flow.Abstractions/              IDocumentRenderer, RenderRequest, Artifact (packable)
+src/OxyKit.Flow.Infrastructure/            Job, JobStatus, FlowDbContext, IJobClaimStore
+src/OxyKit.Flow.Infrastructure.Sqlite/     UseSqlite + transaction claim + Migrations
+src/OxyKit.Flow.Infrastructure.Postgres/   UseNpgsql + SKIP LOCKED claim + Migrations
 src/OxyKit.Flow/
   Features/Jobs/           Create/Get endpoints, DTOs, validator, JobService (ErrorOr)
-  Common/                  FlowEndpoint, AuthSchemes, Extensions
+  Common/                  FlowEndpoint, AuthSchemes, Extensions (AddOxyKitFlowDatabase)
   Security/                ApiKeyAuthHandler
-  Infrastructure/          Job, JobStatus, FlowDbContext (SQLite)
   Services/                JobExecutor, JobQueueProcessor, options, serializers
   Renderers/               OxyKitRenderEngine, assembly loader, validator
   Outputs/                 IOutputProvider, File, Mail, Ftp, Sftp
@@ -55,8 +59,16 @@ hoppscotch/
 ## Pipeline
 
 `POST /api/v1/jobs` (+ optional `Idempotency-Key`) -> persist `Job` (Queued) ->
-`JobQueueProcessor` claims -> `JobExecutor` (resolve `IDocumentRenderer` by `render.engine`) ->
+`IJobClaimStore` claims (SQLite tx / Postgres `SKIP LOCKED`) -> `JobExecutor` (resolve `IDocumentRenderer` by `render.engine`) ->
 each `IOutputProvider` -> `Completed` / re-queue / `DeadLettered`.
+
+| Config | Values |
+|--------|--------|
+| `DatabaseProvider` | `SQLite` (default) \| `PostgreSQL` |
+| `ConnectionStrings:SQLiteConnection` | e.g. `Data Source=data/oxykit-flow.db` |
+| `ConnectionStrings:PostgreSQLConnection` | e.g. `Host=…;Database=oxykit_flow;…` |
+
+Use **PostgreSQL** when running multiple Flow workers against one store.
 
 Default engine name: **`oxykit-render`**. Config under `Render:Engines:{name}`:
 
@@ -74,6 +86,8 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 | `ftp` | remote path | Named profile in `Outputs:Transfer:Profiles` (`Protocol: ftp`); optional FTPS via `UseSsl`. Job requires `profile`. Validated at create time |
 | `sftp` | remote path | Named profile (`Protocol: sftp`); password and/or `PrivateKeyPath`. Job requires `profile`. Validated at create time |
 
+**Planned (not shipped):** optional per-delivery `zip` — package the artifact with `System.IO.Compression` then hand to the real provider. Not a fifth `IOutputProvider`. Cloud retain stays a separate module.
+
 ## Hard constraints
 
 - **No in-process generators** - render via named HTTP engines (`IDocumentRenderer`)
@@ -82,7 +96,7 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 - Endpoints inherit `FlowEndpoint*` + `SendOnErrorAsync`; services return `ErrorOr` when failure is possible
 - Render routing: job `render.engine` == `IDocumentRenderer.Name` (default `oxykit-render`)
 - Output routing: job `provider` == `IOutputProvider.Name`
-- Client idempotency via unique `Idempotency-Key`; processor idempotency via claim + status
+- Client idempotency via unique `Idempotency-Key`; processor claim via `IJobClaimStore` (provider-specific) + status
 - **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`)
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets

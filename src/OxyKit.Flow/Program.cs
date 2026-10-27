@@ -1,29 +1,21 @@
 using FastEndpoints.Swagger;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NSwag;
 using OxyKit.Flow.Common;
 using OxyKit.Flow.Common.Extensions;
 using OxyKit.Flow.Features.Jobs.Services;
-using OxyKit.Flow.Infrastructure;
 using OxyKit.Flow.Outputs;
 using OxyKit.Flow.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOxyKitFlowHost();
+builder.Services.AddOxyKitFlowDatabase(builder.Configuration);
 builder.Services.Configure<JobOptions>(builder.Configuration.GetSection(JobOptions.SectionName));
 builder.Services.AddOptions<MailOutputOptions>().BindConfiguration(MailOutputOptions.SectionName);
 builder
     .Services.AddOptions<TransferOutputOptions>()
     .BindConfiguration(TransferOutputOptions.SectionName);
-
-var connectionString =
-    builder.Configuration.GetConnectionString("Flow") ?? "Data Source=data/oxykit-flow.db";
-
-Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "data"));
-
-builder.Services.AddDbContext<FlowDbContext>(options => options.UseSqlite(connectionString));
 
 builder.Services.AddDocumentRenderers(
     builder.Configuration,
@@ -77,12 +69,7 @@ builder.Services.SwaggerDocument(o =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<FlowDbContext>();
-    await db.Database.EnsureCreatedAsync();
-}
-
+app.ApplyOxyKitFlowMigrations();
 app.UseOxyKitFlowPipeline();
 app.Run();
 

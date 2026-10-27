@@ -4,6 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Multi-provider job store: `OxyKit.Flow.Infrastructure` + `Infrastructure.Sqlite` / `Infrastructure.Postgres` (Mail-aligned `DatabaseProvider` switch)
+- Atomic job claim: SQLite write transaction; PostgreSQL `FOR UPDATE SKIP LOCKED` (multi-worker safe)
+- EF migrations per provider (`scripts/AddEfMigration.*.ps1`); startup applies `Migrate()` instead of `EnsureCreated`
+
+### Changed
+
+- Connection strings: `SQLiteConnection` / `PostgreSQLConnection` (replaces `ConnectionStrings:Flow`)
+- Default remains **SQLite** for local / Compose; set `DatabaseProvider=PostgreSQL` for shared durable store
+- Local DBs created with `EnsureCreated` are not migration-aware — delete `data/oxykit-flow.db` (or Compose `flow-data` volume) once after upgrading
+
+### Planned
+
+- Per-output **zip packaging** (optional `zip` on a delivery): wrap the single render `Artifact` via `System.IO.Compression` (`ZipArchive`) before `file` / `mail` / `ftp` / `sftp` — not a separate output provider. Password-protected zip and multi-entry archives deferred.
+- Per-output delivery state + Mail idempotency keys (safe retries under distribution)
+
 ## [0.1.0] - 2026-10-22
 
 ### Added

@@ -21,8 +21,8 @@ public sealed class FlowDbContext(DbContextOptions<FlowDbContext> options) : DbC
         job.Property(j => j.LastError).HasMaxLength(4000);
         job.Property(j => j.Status).HasConversion<string>().HasMaxLength(32);
 
-        // SQLite allows multiple NULLs in a UNIQUE column; filter keeps the index meaningful when set.
-        job.HasIndex(j => j.IdempotencyKey).IsUnique().HasFilter("IdempotencyKey IS NOT NULL");
+        // SQLite and PostgreSQL both allow multiple NULLs in a UNIQUE index.
+        job.HasIndex(j => j.IdempotencyKey).IsUnique();
 
         job.HasIndex(j => j.Status);
         job.HasIndex(j => j.CreatedAt);

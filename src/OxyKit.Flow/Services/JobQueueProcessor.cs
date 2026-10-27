@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OxyKit.Flow.Infrastructure;
 
@@ -52,56 +51,18 @@ public sealed class JobQueueProcessor(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<FlowDbContext>();
+        var claims = scope.ServiceProvider.GetRequiredService<IJobClaimStore>();
         var executor = scope.ServiceProvider.GetRequiredService<JobExecutor>();
         var opts = options.Value;
         var timeout = TimeSpan.FromSeconds(Math.Max(30, opts.ProcessingTimeoutSeconds));
-        var cutoff = DateTime.UtcNow - timeout;
 
-        var stuck = await db
-            .Jobs.Where(j =>
-                j.Status == JobStatus.Processing
-                && j.ProcessingStartedAt != null
-                && j.ProcessingStartedAt <= cutoff
-            )
-            .ToListAsync(cancellationToken);
-
-        foreach (var job in stuck)
-        {
-            if (job.CanBeRetried())
-            {
-                job.MarkAsQueuedForRetry(
-                    $"Processing timed out after {timeout.TotalSeconds:0}s; re-queued for retry."
-                );
-                logger.LogWarning(
-                    "Job {JobId} stuck; re-queued (attempt {Attempt})",
-                    job.Id,
-                    job.AttemptCount
-                );
-            }
-            else
-            {
-                job.MarkAsDeadLettered(
-                    $"Max attempts ({job.MaxAttempts}) exceeded after processing timeout."
-                );
-                logger.LogError("Job {JobId} dead-lettered after stuck timeout", job.Id);
-            }
-        }
-
-        if (stuck.Count > 0)
-            await db.SaveChangesAsync(cancellationToken);
+        await claims.ReclaimStuckAsync(timeout, cancellationToken);
 
         var batchSize = Math.Max(1, opts.BatchSize);
-        var queued = await db
-            .Jobs.Where(j => j.Status == JobStatus.Queued)
-            .OrderBy(j => j.CreatedAt)
-            .Take(batchSize)
-            .ToListAsync(cancellationToken);
+        var claimed = await claims.ClaimQueuedAsync(batchSize, cancellationToken);
 
-        foreach (var job in queued)
+        foreach (var job in claimed)
         {
-            job.MarkAsProcessing();
-            await db.SaveChangesAsync(cancellationToken);
-
             try
             {
                 logger.LogInformation(

@@ -20,10 +20,16 @@
     <PackageReference Include="FastEndpoints.Swagger" Version="8.3.0" />
     <PackageReference Include="FluentFTP" Version="55.1.0" />
     <PackageReference Include="FluentValidation" Version="12.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
     <PackageReference Include="OxyKit.Render.Client" Version="0.1.2" />
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
     <ProjectReference Include="..\OxyKit.Flow.Abstractions\OxyKit.Flow.Abstractions.csproj" />
+    <ProjectReference Include="..\OxyKit.Flow.Infrastructure\OxyKit.Flow.Infrastructure.csproj" />
+    <ProjectReference Include="..\OxyKit.Flow.Infrastructure.Sqlite\OxyKit.Flow.Infrastructure.Sqlite.csproj" />
+    <ProjectReference Include="..\OxyKit.Flow.Infrastructure.Postgres\OxyKit.Flow.Infrastructure.Postgres.csproj" />
   </ItemGroup>
 </Project>

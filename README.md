@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/download)
 
-Job **orchestrator** for the [OxyKit](https://oxykit.dev) suite: accept render + deliver jobs, persist them (SQLite), process asynchronously via OxyKit.Render and output providers.
+Job **orchestrator** for the [OxyKit](https://oxykit.dev) suite: accept render + deliver jobs, persist them (SQLite or PostgreSQL), process asynchronously via OxyKit.Render and output providers.
 
 **License:** MIT · **Org:** [oxykit-dev](https://github.com/oxykit-dev) · **Site:** [oxykit.dev](https://oxykit.dev)  
 **Releases:** [app zips](https://github.com/oxykit-dev/OxyKit.Flow/releases) (no Flow NuGet) · **Uses:** [`OxyKit.Render.Client`](https://www.nuget.org/packages/OxyKit.Render.Client)  
@@ -22,7 +22,7 @@ dotnet run --project ../OxyKit.Render/src/OxyKit.Render.Api
 dotnet run --project src/OxyKit.Flow/OxyKit.Flow.csproj
 ```
 
-Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-key`). Production / release zips require `Security__ApiKey` (and Render engine address/key) via environment or config.
+Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-key`) and **SQLite** by default. For a shared store / multiple workers set `DatabaseProvider=PostgreSQL` and `ConnectionStrings__PostgreSQLConnection`. Production / release zips require `Security__ApiKey` (and Render engine address/key) via environment or config.
 
 | URL / header | Purpose |
 |--------------|---------|
