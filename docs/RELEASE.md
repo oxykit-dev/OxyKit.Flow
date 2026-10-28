@@ -22,8 +22,8 @@ Depends on a running OxyKit.Render engine (and Mail if using `mail` output). Cli
 4. Tag and push (or create the tag from the GitHub Release UI on that commit):
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
-Watch **Actions → Release**. First public tag: ensure `LICENSE`, CI, and this workflow are on the tagged commit.
+Watch **Actions → Release**. Tag without `v` must match `<Version>` in the host csproj.

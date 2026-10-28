@@ -11,4 +11,4 @@ Mirror of the **suite-root** Compose golden path so Flow CI can assemble sibling
 
 Keep in sync when suite-root Compose files change. Workflow: [`.github/workflows/compose-e2e.yml`](../../.github/workflows/compose-e2e.yml).
 
-**Private sibling repos:** set repository secret `SUITE_CHECKOUT_PAT` (read access to `OxyKit.Render` + `OxyKit.Mail`). After those repos are public, the default `github.token` is enough.
+Sibling repos are **public** — workflow checkouts use `github.token`. Optional secret `SUITE_CHECKOUT_PAT` remains as a fallback only.
