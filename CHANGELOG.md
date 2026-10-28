@@ -13,6 +13,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Mail output sends `Idempotency-Key: {jobId:N}:{ordinal}` and stores Mail `emailId` on the delivery
 - Hoppscotch **Jobs — mail** folder (canonical Flow→Render→Mail smoke; env `mailTo` / `mailJobId`)
 - Compose golden-path CI (`deploy/compose/` + `.github/workflows/compose-e2e.yml`) — Flow→Render→file + Mail accept
+- Job admin: `GET /api/v1/jobs` (optional `status`, `limit`) and `POST /api/v1/jobs/{id}/retry` for DeadLettered jobs
+- Hoppscotch **Jobs — admin** folder
 
 ### Changed
 

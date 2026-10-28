@@ -46,4 +46,14 @@ public sealed class JobDelivery
         LastError = reason.Length <= 4000 ? reason : reason[..4000];
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>Reset a non-succeeded delivery so a requeued job can try again.</summary>
+    public void MarkAsPendingForRetry()
+    {
+        Status = JobDeliveryStatus.Pending;
+        LastError = null;
+        ExternalId = null;
+        CompletedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

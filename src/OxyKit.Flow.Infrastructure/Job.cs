@@ -90,6 +90,17 @@ public sealed class Job
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>Operator requeue (e.g. dead-letter retry): fresh attempt budget, back to Queued.</summary>
+    public void MarkAsRequeued()
+    {
+        Status = JobStatus.Queued;
+        AttemptCount = 0;
+        ProcessingStartedAt = null;
+        CompletedAt = null;
+        LastError = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public bool CanBeRetried() => AttemptCount < MaxAttempts;
 
     public bool IsStuck(TimeSpan timeout) =>

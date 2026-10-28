@@ -20,7 +20,7 @@ Companion engine: HTTP to OxyKit.Render via named `IDocumentRenderer` (default `
 | DI / startup | `src/OxyKit.Flow/Program.cs`, `Common/Extensions/` |
 | ErrorOr → HTTP | `src/OxyKit.Flow/Common/FlowEndpoint.cs` |
 | Auth (API key) | `src/OxyKit.Flow/Security/ApiKeyAuthHandler.cs` |
-| Create / get jobs | `src/OxyKit.Flow/Features/Jobs/` |
+| Create / get / list / retry jobs | `src/OxyKit.Flow/Features/Jobs/` |
 | Job service | `src/OxyKit.Flow/Features/Jobs/Services/JobService.cs` |
 | Execute + queue | `src/OxyKit.Flow/Services/JobExecutor.cs`, `JobQueueProcessor.cs` |
 | DB / claim | `src/OxyKit.Flow.Infrastructure/` + `Infrastructure.{Sqlite,Postgres}/` (`IJobClaimStore`) |
@@ -62,6 +62,8 @@ hoppscotch/
 `POST /api/v1/jobs` (+ optional `Idempotency-Key`) -> persist `Job` + `JobDelivery` rows (Queued) ->
 `IJobClaimStore` claims (SQLite tx / Postgres `SKIP LOCKED`) -> `JobExecutor` (resolve `IDocumentRenderer` by `render.engine`) ->
 each pending `IOutputProvider` (skip succeeded; Mail sends `Idempotency-Key`) -> `Completed` / re-queue / `DeadLettered`.
+
+Admin: `GET /api/v1/jobs` (`status`, `limit` 1–100) · `POST /api/v1/jobs/{id}/retry` (DeadLettered only → Queued, fresh attempts; succeeded deliveries stay skipped).
 
 | Config | Values |
 |--------|--------|

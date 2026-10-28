@@ -277,6 +277,109 @@
       "headers": [],
       "preRequestScript": "",
       "testScript": ""
+    },
+    {
+      "v": 12,
+      "name": "Jobs — admin",
+      "variables": [],
+      "description": "List / filter jobs; retry DeadLettered (set jobId to a dead-lettered id for retry).",
+      "folders": [],
+      "requests": [
+        {
+          "v": "17",
+          "id": "flow-jobs-list",
+          "name": "GET /jobs (list)",
+          "method": "GET",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/?limit=20",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200\", () => {\n  pw.expect(pw.response.status).toBe(200);\n});\npw.test(\"has items array\", () => {\n  pw.expect(Array.isArray(pw.response.body.items)).toBe(true);\n});\npw.test(\"has count and total\", () => {\n  pw.expect(typeof pw.response.body.count).toBe(\"number\");\n  pw.expect(typeof pw.response.body.total).toBe(\"number\");\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "Newest first. Optional query: status, limit (1–100)."
+        },
+        {
+          "v": "17",
+          "id": "flow-jobs-list-queued",
+          "name": "GET /jobs?status=Queued",
+          "method": "GET",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/?status=Queued&limit=20",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200\", () => {\n  pw.expect(pw.response.status).toBe(200);\n});\npw.test(\"items are Queued when present\", () => {\n  const items = pw.response.body.items || [];\n  for (const j of items) {\n    pw.expect(j.status).toBe(\"Queued\");\n  }\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": null
+        },
+        {
+          "v": "17",
+          "id": "flow-job-retry",
+          "name": "POST /jobs/{id}/retry",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/<<jobId>>/retry",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200 or 400\", () => {\n  const s = pw.response.status;\n  pw.expect(s === 200 || s === 400 || s === 404).toBe(true);\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "Only DeadLettered jobs succeed (200 → Queued). Non-dead-letter → 400; missing id → 404."
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "preRequestScript": "",
+      "testScript": ""
     }
   ],
   "requests": [],

@@ -162,6 +162,102 @@ public sealed class JobService(
         return (job, deliveries);
     }
 
+    public const int DefaultListLimit = 50;
+    public const int MaxListLimit = 100;
+
+    public async Task<ErrorOr<ListJobsResult>> ListAsync(
+        string? statusFilter,
+        int? limit,
+        CancellationToken cancellationToken = default
+    )
+    {
+        JobStatus? status = null;
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            if (!Enum.TryParse<JobStatus>(statusFilter.Trim(), ignoreCase: true, out var parsed))
+            {
+                return Error.Validation(
+                    description: $"Unknown status '{statusFilter}'. Use Queued, Processing, Completed, Failed, or DeadLettered."
+                );
+            }
+
+            status = parsed;
+        }
+
+        var take = limit ?? DefaultListLimit;
+        if (take < 1 || take > MaxListLimit)
+            return Error.Validation(description: $"limit must be between 1 and {MaxListLimit}.");
+
+        var query = db.Jobs.AsNoTracking().AsQueryable();
+        if (status is not null)
+            query = query.Where(j => j.Status == status);
+
+        var total = await query.CountAsync(cancellationToken);
+        var jobs = await query
+            .OrderByDescending(j => j.CreatedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        var ids = jobs.Select(j => j.Id).ToList();
+        var allDeliveries = await db
+            .JobDeliveries.AsNoTracking()
+            .Where(d => ids.Contains(d.JobId))
+            .OrderBy(d => d.Ordinal)
+            .ToListAsync(cancellationToken);
+        var byJob = allDeliveries.GroupBy(d => d.JobId).ToDictionary(g => g.Key, g => (IReadOnlyList<JobDelivery>)g.ToList());
+
+        var items = jobs
+            .Select(j =>
+                (
+                    Job: j,
+                    Deliveries: byJob.TryGetValue(j.Id, out var d)
+                        ? d
+                        : Array.Empty<JobDelivery>()
+                )
+            )
+            .ToList();
+
+        return new ListJobsResult
+        {
+            Items = items,
+            Count = items.Count,
+            Total = total,
+        };
+    }
+
+    public async Task<ErrorOr<(Job Job, IReadOnlyList<JobDelivery> Deliveries)>> RetryDeadLetteredAsync(
+        Guid id,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var job = await db.Jobs.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+        if (job is null)
+            return Error.NotFound(description: "Job not found.");
+
+        if (job.Status != JobStatus.DeadLettered)
+        {
+            return Error.Validation(
+                description: $"Only DeadLettered jobs can be retried (current status: {job.Status})."
+            );
+        }
+
+        job.MarkAsRequeued();
+
+        var deliveries = await db
+            .JobDeliveries.Where(d => d.JobId == id)
+            .OrderBy(d => d.Ordinal)
+            .ToListAsync(cancellationToken);
+
+        foreach (var delivery in deliveries)
+        {
+            if (delivery.Status != JobDeliveryStatus.Succeeded)
+                delivery.MarkAsPendingForRetry();
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return (job, deliveries);
+    }
+
     private async Task<IReadOnlyList<JobDelivery>> LoadDeliveriesAsync(
         Guid jobId,
         CancellationToken cancellationToken
@@ -171,4 +267,11 @@ public sealed class JobService(
             .Where(d => d.JobId == jobId)
             .OrderBy(d => d.Ordinal)
             .ToListAsync(cancellationToken);
+}
+
+public sealed class ListJobsResult
+{
+    public required IReadOnlyList<(Job Job, IReadOnlyList<JobDelivery> Deliveries)> Items { get; init; }
+    public required int Count { get; init; }
+    public required int Total { get; init; }
 }

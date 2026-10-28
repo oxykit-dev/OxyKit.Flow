@@ -31,13 +31,15 @@ Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-ke
 | `GET /health` | Health |
 | `/scalar`, `/openapi/v1.json` | OpenAPI UI + JSON (Development only) |
 | `POST /api/v1/jobs` (+ optional `Idempotency-Key`) | Create job |
+| `GET /api/v1/jobs` (`status`, `limit`) | List jobs (newest first) |
 | `GET /api/v1/jobs/{id}` | Poll status |
+| `POST /api/v1/jobs/{id}/retry` | Requeue DeadLettered job |
 
 ```bash
 dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 ```
 
-**Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), then optional **Jobs — mail** (Render + Mail + `OxyKit.Mail:ApiKey` / compose `FLOW_MAIL_API_KEY`).
+**Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), optional **Jobs — mail**, then **Jobs — admin** (list / retry).
 
 Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Layout and constraints: [AGENTS.md](./AGENTS.md).
 
