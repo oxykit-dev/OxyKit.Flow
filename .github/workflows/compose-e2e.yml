@@ -20,19 +20,19 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout Flow
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: OxyKit.Flow
 
       - name: Checkout Render
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: oxykit-dev/OxyKit.Render
           path: OxyKit.Render
           token: ${{ secrets.SUITE_CHECKOUT_PAT || github.token }}
 
       - name: Checkout Mail
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: oxykit-dev/OxyKit.Mail
           path: OxyKit.Mail
