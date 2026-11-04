@@ -137,9 +137,21 @@ public sealed class JobExecutor(
 
             try
             {
+                var toSend = ArtifactZipPackager.PackIfRequested(artifact, request);
+                var deliveryRequest = ArtifactZipPackager.AdjustDestination(request);
+                if (request.Zip)
+                {
+                    logger.LogInformation(
+                        "Job {JobId} packaging delivery {Ordinal} as zip ({FileName})",
+                        job.Id,
+                        delivery.Ordinal,
+                        toSend.FileName
+                    );
+                }
+
                 var result = await provider.SendAsync(
-                    artifact,
-                    request,
+                    toSend,
+                    deliveryRequest,
                     context,
                     cancellationToken
                 );
@@ -148,8 +160,8 @@ public sealed class JobExecutor(
                 logger.LogInformation(
                     "Job {JobId} delivered via {Provider} → {Destination} (ordinal {Ordinal})",
                     job.Id,
-                    request.Provider,
-                    request.Destination,
+                    deliveryRequest.Provider,
+                    deliveryRequest.Destination,
                     delivery.Ordinal
                 );
             }

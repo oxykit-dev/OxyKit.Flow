@@ -25,4 +25,11 @@ public sealed class DeliveryRequest
 
     /// <summary>Optional mail body override.</summary>
     public string? Body { get; init; }
+
+    /// <summary>
+    /// When true, wrap the single render artifact in a zip before this provider runs
+    /// (<c>file</c> / <c>mail</c> / <c>ftp</c> / <c>sftp</c>). Not a separate provider.
+    /// Path destinations that name a file are rewritten to <c>.zip</c> when needed.
+    /// </summary>
+    public bool Zip { get; init; }
 }

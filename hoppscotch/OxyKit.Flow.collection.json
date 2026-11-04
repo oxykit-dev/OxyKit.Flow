@@ -121,6 +121,47 @@
         },
         {
           "v": "17",
+          "id": "flow-job-file-zip",
+          "name": "POST /jobs (table\u2192html \u2192 file zip)",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Idempotency-Key",
+              "value": "hoppscotch-smoke-zip-1",
+              "active": true,
+              "description": "Change to re-create; same key returns existing job"
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200 or 201\", () => {\n  const s = pw.response.status;\n  pw.expect(s === 200 || s === 201).toBe(true);\n});\npw.test(\"returns job id\", () => {\n  pw.expect(typeof pw.response.body.id).toBe(\"string\");\n  pw.env.set(\"jobId\", pw.response.body.id);\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\n  \"name\": \"hoppscotch-smoke-zip\",\n  \"render\": {\n    \"input\": \"table\",\n    \"output\": \"html\",\n    \"body\": {\n      \"sheets\": [\n        {\n          \"name\": \"Orders\",\n          \"headers\": [\n            \"Id\",\n            \"Customer\"\n          ],\n          \"rows\": [\n            [\n              1,\n              \"Acme\"\n            ],\n            [\n              2,\n              \"Beta\"\n            ]\n          ]\n        }\n      ]\n    }\n  },\n  \"outputs\": [\n    {\n      \"provider\": \"file\",\n      \"destination\": \"output/hoppscotch_smoke.html\",\n      \"zip\": true\n    }\n  ]\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "zip:true wraps the artifact; file destination is rewritten to .zip (output/hoppscotch_smoke.zip)."
+        },
+        {
+          "v": "17",
           "id": "flow-job-get",
           "name": "GET /jobs/{id}",
           "method": "GET",

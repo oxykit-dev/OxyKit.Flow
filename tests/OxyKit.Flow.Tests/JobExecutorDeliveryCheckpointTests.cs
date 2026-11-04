@@ -173,6 +173,72 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteAsync_ZipTrue_PassesZippedArtifactAndAdjustedPath()
+    {
+        await using var db = CreateDb();
+        var jobId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        db.Jobs.Add(
+            new Job
+            {
+                Id = jobId,
+                Status = JobStatus.Processing,
+                RenderEngine = "stub",
+                RenderInput = "table",
+                RenderOutput = "html",
+                RenderBodyJson = "{}",
+                OutputsJson =
+                    """[{"provider":"a","destination":"output/report.html","zip":true}]""",
+                AttemptCount = 1,
+                MaxAttempts = 3,
+                CreatedAt = now,
+                UpdatedAt = now,
+            }
+        );
+        db.JobDeliveries.Add(
+            new JobDelivery
+            {
+                Id = Guid.NewGuid(),
+                JobId = jobId,
+                Ordinal = 0,
+                Provider = "a",
+                Destination = "output/report.html",
+                Status = JobDeliveryStatus.Pending,
+                CreatedAt = now,
+                UpdatedAt = now,
+            }
+        );
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var provider = new CapturingProvider("a");
+        var executor = new JobExecutor(
+            db,
+            [new StubRenderer()],
+            [provider],
+            NullLogger<JobExecutor>.Instance
+        );
+
+        var job = await db.Jobs.SingleAsync(
+            j => j.Id == jobId,
+            TestContext.Current.CancellationToken
+        );
+        await executor.ExecuteAsync(job, TestContext.Current.CancellationToken);
+
+        provider.LastArtifact.Should().NotBeNull();
+        provider.LastArtifact!.ContentType.Should().Be(ArtifactZipPackager.ZipContentType);
+        provider.LastArtifact.FileName.Should().Be("out.zip");
+        provider.LastRequest!.Destination.Should().Be("output/report.zip");
+        provider.LastRequest.Zip.Should().BeTrue();
+
+        using var zip = new System.IO.Compression.ZipArchive(
+            new MemoryStream(provider.LastArtifact.Content),
+            System.IO.Compression.ZipArchiveMode.Read
+        );
+        zip.Entries.Should().ContainSingle().Which.FullName.Should().Be("out.html");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_ProviderMismatch_Throws()
     {
         await using var db = CreateDb();
@@ -351,6 +417,25 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         )
         {
             SendCount++;
+            return Task.FromResult(DeliveryResult.Empty);
+        }
+    }
+
+    private sealed class CapturingProvider(string name) : IOutputProvider
+    {
+        public string Name { get; } = name;
+        public Artifact? LastArtifact { get; private set; }
+        public DeliveryRequest? LastRequest { get; private set; }
+
+        public Task<DeliveryResult> SendAsync(
+            Artifact artifact,
+            DeliveryRequest request,
+            DeliveryContext context,
+            CancellationToken cancellationToken = default
+        )
+        {
+            LastArtifact = artifact;
+            LastRequest = request;
             return Task.FromResult(DeliveryResult.Empty);
         }
     }

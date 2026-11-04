@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Per-output **zip packaging**: optional `"zip": true` on a delivery wraps the single render artifact (`System.IO.Compression`) before `file` / `mail` / `ftp` / `sftp` — not a separate provider. Path destinations naming a file are rewritten to `.zip` when needed; directory destinations and mail To addresses use the packaged `Artifact.FileName`. Password-protected and multi-entry archives remain deferred.
 - Multi-provider job store: `OxyKit.Flow.Infrastructure` + `Infrastructure.Sqlite` / `Infrastructure.Postgres` (Mail-aligned `DatabaseProvider` switch)
 - Atomic job claim: SQLite write transaction; PostgreSQL `FOR UPDATE SKIP LOCKED` (multi-worker safe)
 - EF migrations per provider (`scripts/AddEfMigration.*.ps1`); startup applies `Migrate()` instead of `EnsureCreated`
@@ -27,7 +28,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Planned
 
-- Per-output **zip packaging** (optional `zip` on a delivery): wrap the single render `Artifact` via `System.IO.Compression` (`ZipArchive`) before `file` / `mail` / `ftp` / `sftp` — not a separate output provider. Password-protected zip and multi-entry archives deferred.
 - Render artifact cache (avoid re-render on delivery-only retry)
 
 ## [0.1.0] - 2026-10-22

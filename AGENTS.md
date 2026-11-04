@@ -89,7 +89,7 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 | `ftp` | remote path | Named profile in `Outputs:Transfer:Profiles` (`Protocol: ftp`); optional FTPS via `UseSsl`. Job requires `profile`. Validated at create time |
 | `sftp` | remote path | Named profile (`Protocol: sftp`); password and/or `PrivateKeyPath`. Job requires `profile`. Validated at create time |
 
-**Planned (not shipped):** optional per-delivery `zip` — package the artifact with `System.IO.Compression` then hand to the real provider. Not a fifth `IOutputProvider`. Cloud retain stays a separate module.
+**Zip packaging (not a provider):** optional `"zip": true` on any delivery — `ArtifactZipPackager` wraps the single render artifact then the real provider runs. File/ftp/sftp paths that name a file get a `.zip` extension when missing; directory destinations and mail To use packaged `FileName`. Password / multi-entry deferred. Cloud retain stays a separate module.
 
 ## Hard constraints
 
