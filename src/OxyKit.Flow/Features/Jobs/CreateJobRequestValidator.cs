@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentValidation;
+using OxyKit.Flow.Services;
 
 namespace OxyKit.Flow.Features.Jobs;
 
@@ -23,5 +24,9 @@ public sealed class CreateJobRequestValidator : AbstractValidator<CreateJobReque
         RuleFor(x => x.Outputs)
             .NotEmpty()
             .WithMessage("At least one output is required.");
+        RuleFor(x => x.WebhookUrl)
+            .Must(url => JobWebhookDispatcher.ValidateWebhookUrl(url) is null)
+            .When(x => !string.IsNullOrWhiteSpace(x.WebhookUrl))
+            .WithMessage("webhookUrl must be an absolute http or https URL.");
     }
 }

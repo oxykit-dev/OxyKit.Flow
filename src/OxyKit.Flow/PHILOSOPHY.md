@@ -14,12 +14,13 @@ OxyKit.Flow is an **orchestrator with a job store**:
 
 1. **Accept** -- HTTP job (render spec + outputs); optional `Idempotency-Key`
 2. **Persist** -- job row (Queued) in SQLite (single-node) or PostgreSQL (shared / multi-worker) so work survives restarts and duplicate posts
-3. **Render** -- call a named HTTP render engine (`IDocumentRenderer` from Abstractionsctions; default `oxykit-render` via Client; third-party adapters via `Kind=assembly` config)
+3. **Render** -- call a named HTTP render engine (`IDocumentRenderer` from Abstractions; default `oxykit-render` via Client; third-party adapters via `Kind=assembly` config). Cache the artifact on disk so delivery-only retries skip Render.
 4. **Deliver** -- `IOutputProvider` implementations (`file`, `mail` via OxyKit.Mail, in-process `ftp`/`sftp`). Optional per-output `"zip": true` wraps the artifact (BCL `System.IO.Compression`) before the provider — packaging, not a destination. Cloud retain / object storage = separate modules, not core.
 5. **Retry** -- atomic claim + per-output checkpoints (skip succeeded); Mail accepts `Idempotency-Key`; dead-letter after max attempts. file/ftp/sftp write via `*.partial` then rename (overwrite final) so mid-write crashes do not leave sibling finals; crash after finalize but before checkpoint still re-sends (overwrite).
+6. **Notify** -- optional best-effort webhook on `Completed` / `DeadLettered` (job URL or host default); never part of the durable delivery contract.
 
 ## Non-goals
 
 - Not a document generator (no in-process CSV/HTML/PDF engines)
 - Not a BI / dashboard designer
-- Not multi-tenant SaaS / billing
+- Not end-customer account or org management

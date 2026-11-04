@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using OxyKit.Flow.Infrastructure;
 using OxyKit.Flow.Outputs;
 using OxyKit.Flow.Services;
@@ -13,6 +14,10 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         Path.GetTempPath(),
         $"oxykit-flow-exec-{Guid.NewGuid():N}.db"
     );
+    private readonly string _artifactRoot = Path.Combine(
+        Path.GetTempPath(),
+        $"oxykit-flow-artifacts-{Guid.NewGuid():N}"
+    );
 
     private FlowDbContext CreateDb()
     {
@@ -24,12 +29,34 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         return db;
     }
 
+    private IArtifactCache CreateCache() =>
+        new FileArtifactCache(
+            Options.Create(new ArtifactCacheOptions { Root = _artifactRoot }),
+            NullLogger<FileArtifactCache>.Instance
+        );
+
+    private JobExecutor CreateExecutor(
+        FlowDbContext db,
+        IEnumerable<IDocumentRenderer> engines,
+        IEnumerable<IOutputProvider> outputs
+    ) => new(db, engines, outputs, CreateCache(), NullLogger<JobExecutor>.Instance);
+
     public void Dispose()
     {
         try
         {
             if (File.Exists(_dbPath))
                 File.Delete(_dbPath);
+        }
+        catch
+        {
+            // best-effort
+        }
+
+        try
+        {
+            if (Directory.Exists(_artifactRoot))
+                Directory.Delete(_artifactRoot, recursive: true);
         }
         catch
         {
@@ -78,12 +105,7 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
 
         var renderer = new CountingRenderer();
         var provider = new CountingProvider("a");
-        var executor = new JobExecutor(
-            db,
-            [renderer],
-            [provider],
-            NullLogger<JobExecutor>.Instance
-        );
+        var executor = CreateExecutor(db, [renderer], [provider]);
 
         var job = await db.Jobs.SingleAsync(
             j => j.Id == jobId,
@@ -146,14 +168,10 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         );
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
+        var renderer = new CountingRenderer();
         var providerA = new CountingProvider("a");
         var providerB = new CountingProvider("b");
-        var executor = new JobExecutor(
-            db,
-            [new StubRenderer()],
-            [providerA, providerB],
-            NullLogger<JobExecutor>.Instance
-        );
+        var executor = CreateExecutor(db, [renderer], [providerA, providerB]);
 
         var job = await db.Jobs.SingleAsync(
             j => j.Id == jobId,
@@ -163,12 +181,24 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
 
         providerA.SendCount.Should().Be(0);
         providerB.SendCount.Should().Be(1);
+        renderer.RenderCount.Should().Be(1);
 
         var deliveries = await db
             .JobDeliveries.OrderBy(d => d.Ordinal)
             .ToListAsync(TestContext.Current.CancellationToken);
         deliveries[0].Status.Should().Be(JobDeliveryStatus.Succeeded);
         deliveries[1].Status.Should().Be(JobDeliveryStatus.Succeeded);
+
+        // Delivery-only retry should hit filesystem cache, not Render again.
+        deliveries[1].MarkAsPendingForRetry();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        job = await db.Jobs.SingleAsync(j => j.Id == jobId, TestContext.Current.CancellationToken);
+        await executor.ExecuteAsync(job, TestContext.Current.CancellationToken);
+
+        renderer.RenderCount.Should().Be(1);
+        providerB.SendCount.Should().Be(2);
+        job.ArtifactContentType.Should().Be("text/html");
+        job.ArtifactCachedAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -211,12 +241,7 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var provider = new CapturingProvider("a");
-        var executor = new JobExecutor(
-            db,
-            [new StubRenderer()],
-            [provider],
-            NullLogger<JobExecutor>.Instance
-        );
+        var executor = CreateExecutor(db, [new StubRenderer()], [provider]);
 
         var job = await db.Jobs.SingleAsync(
             j => j.Id == jobId,
@@ -275,11 +300,10 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         );
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var executor = new JobExecutor(
+        var executor = CreateExecutor(
             db,
             [new StubRenderer()],
-            [new CountingProvider("a"), new CountingProvider("b")],
-            NullLogger<JobExecutor>.Instance
+            [new CountingProvider("a"), new CountingProvider("b")]
         );
 
         var job = await db.Jobs.SingleAsync(
@@ -341,11 +365,10 @@ public sealed class JobExecutorDeliveryCheckpointTests : IDisposable
         );
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var executor = new JobExecutor(
+        var executor = CreateExecutor(
             db,
             [new StubRenderer()],
-            [new CountingProvider("ok"), new ThrowingProvider("bad")],
-            NullLogger<JobExecutor>.Instance
+            [new CountingProvider("ok"), new ThrowingProvider("bad")]
         );
 
         var job = await db.Jobs.SingleAsync(

@@ -28,6 +28,17 @@ namespace OxyKit.Flow.Infrastructure.Postgres.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("ArtifactCachedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ArtifactContentType")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("ArtifactFileName")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<int>("AttemptCount")
                         .HasColumnType("integer");
 
@@ -88,6 +99,10 @@ namespace OxyKit.Flow.Infrastructure.Postgres.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WebhookUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.HasKey("Id");
 

@@ -34,6 +34,21 @@ public sealed class Job
     /// <summary>JSON array of delivery targets (<c>provider</c>, <c>destination</c>, optional mail fields).</summary>
     public required string OutputsJson { get; set; }
 
+    /// <summary>
+    /// Optional absolute http(s) URL notified when the job reaches Completed or DeadLettered.
+    /// When null, host <c>Webhooks:DefaultUrl</c> may still apply.
+    /// </summary>
+    public string? WebhookUrl { get; set; }
+
+    /// <summary>Cached render content type (bytes live on disk under Artifacts:Root).</summary>
+    public string? ArtifactContentType { get; set; }
+
+    /// <summary>Cached render file name.</summary>
+    public string? ArtifactFileName { get; set; }
+
+    /// <summary>When the filesystem artifact cache was written for this job.</summary>
+    public DateTime? ArtifactCachedAt { get; set; }
+
     public int AttemptCount { get; set; }
 
     public int MaxAttempts { get; set; } = 3;

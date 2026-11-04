@@ -16,7 +16,7 @@ public sealed class CreateJobEndpoint(JobService jobs)
         {
             s.Summary = "Create a render+deliver job";
             s.Description =
-                "Persists a queued job. Optional Idempotency-Key header returns the existing job (200) without creating a duplicate.";
+                "Persists a queued job. Optional Idempotency-Key header returns the existing job (200) without creating a duplicate. Optional webhookUrl is POSTed on Completed / DeadLettered.";
         });
     }
 
@@ -41,6 +41,7 @@ public sealed class CreateJobEndpoint(JobService jobs)
             req.Render.Output,
             req.Render.Body,
             req.Outputs,
+            req.WebhookUrl,
             ct
         );
         if (await SendOnErrorAsync(result, ct))

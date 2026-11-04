@@ -412,6 +412,47 @@
           "requestVariables": [],
           "responses": {},
           "description": "Only DeadLettered jobs succeed (200 → Queued). Non-dead-letter → 400; missing id → 404."
+        },
+        {
+          "v": "17",
+          "id": "flow-job-create-webhook",
+          "name": "POST /jobs (with webhookUrl)",
+          "method": "POST",
+          "endpoint": "<<baseUrl>>/api/v1/jobs/",
+          "params": [],
+          "headers": [
+            {
+              "key": "X-OxyKit-Flow-Key",
+              "value": "<<apiKey>>",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "active": true,
+              "description": ""
+            },
+            {
+              "key": "Idempotency-Key",
+              "value": "hoppscotch-webhook-1",
+              "active": true,
+              "description": "Change to re-create; same key returns existing job"
+            }
+          ],
+          "preRequestScript": "",
+          "testScript": "pw.test(\"status is 200 or 201\", () => {\n  const s = pw.response.status;\n  pw.expect(s === 200 || s === 201).toBe(true);\n});\npw.test(\"echoes webhookUrl\", () => {\n  pw.expect(pw.response.body.webhookUrl).toBe(\"https://example.com/oxykit-flow-hook\");\n});\n",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\n  \"name\": \"hoppscotch-webhook\",\n  \"webhookUrl\": \"https://example.com/oxykit-flow-hook\",\n  \"render\": {\n    \"input\": \"table\",\n    \"output\": \"html\",\n    \"body\": {\n      \"sheets\": [\n        {\n          \"name\": \"Orders\",\n          \"headers\": [\"Id\", \"Customer\"],\n          \"rows\": [[1, \"Acme\"]]\n        }\n      ]\n    }\n  },\n  \"outputs\": [\n    {\n      \"provider\": \"file\",\n      \"destination\": \"output/hoppscotch_webhook.html\"\n    }\n  ]\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "description": "Stores webhookUrl; Flow POSTs JobResponse shape on Completed / DeadLettered (best-effort). No live receiver required for this create smoke."
         }
       ],
       "auth": {

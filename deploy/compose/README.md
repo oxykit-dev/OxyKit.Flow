@@ -7,6 +7,7 @@ Mirror of the **suite-root** Compose golden path so Flow CI can assemble sibling
 | `docker-compose.yml` | `docker-compose.yml` |
 | `docker/*.Dockerfile` | `docker/` |
 | `scripts/compose-e2e.sh` | `compose-e2e.sh` |
+| `scripts/compose-bootstrap-mail.sh` | `compose-bootstrap-mail.sh` |
 | `.env.example` | `.env.example` |
 
 Keep in sync when suite-root Compose files change. Workflow: [`.github/workflows/compose-e2e.yml`](../../.github/workflows/compose-e2e.yml).

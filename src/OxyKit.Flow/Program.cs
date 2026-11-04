@@ -22,6 +22,12 @@ builder.AddOxyKitOpenTelemetry(o =>
 builder.Services.AddOxyKitFlowHost();
 builder.Services.AddOxyKitFlowDatabase(builder.Configuration);
 builder.Services.Configure<JobOptions>(builder.Configuration.GetSection(JobOptions.SectionName));
+builder.Services.Configure<ArtifactCacheOptions>(
+    builder.Configuration.GetSection(ArtifactCacheOptions.SectionName)
+);
+builder.Services.Configure<WebhookOptions>(
+    builder.Configuration.GetSection(WebhookOptions.SectionName)
+);
 builder.Services.AddOptions<MailOutputOptions>().BindConfiguration(MailOutputOptions.SectionName);
 builder
     .Services.AddOptions<TransferOutputOptions>()
@@ -54,9 +60,20 @@ builder.Services.AddSingleton<IOutputProvider, FileOutputProvider>();
 builder.Services.AddSingleton<IOutputProvider, MailOutputProvider>();
 builder.Services.AddSingleton<IOutputProvider, FtpOutputProvider>();
 builder.Services.AddSingleton<IOutputProvider, SftpOutputProvider>();
+builder.Services.AddSingleton<IArtifactCache, FileArtifactCache>();
 builder.Services.AddSingleton<TransferOutputValidator>();
 builder.Services.AddScoped<JobService>();
 builder.Services.AddScoped<JobExecutor>();
+builder.Services.AddScoped<IJobWebhookDispatcher, JobWebhookDispatcher>();
+builder
+    .Services.AddHttpClient(JobWebhookDispatcher.HttpClientName)
+    .ConfigureHttpClient(
+        (sp, http) =>
+        {
+            var timeout = sp.GetRequiredService<IOptions<WebhookOptions>>().Value.TimeoutSeconds;
+            http.Timeout = TimeSpan.FromSeconds(timeout <= 0 ? 5 : timeout);
+        }
+    );
 builder.Services.AddHostedService<JobQueueProcessor>();
 
 builder.Services.SwaggerDocument(o =>

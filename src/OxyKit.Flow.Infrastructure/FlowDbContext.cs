@@ -20,6 +20,9 @@ public sealed class FlowDbContext(DbContextOptions<FlowDbContext> options) : DbC
         job.Property(j => j.RenderOutput).HasMaxLength(64).IsRequired();
         job.Property(j => j.RenderBodyJson).IsRequired();
         job.Property(j => j.OutputsJson).IsRequired();
+        job.Property(j => j.WebhookUrl).HasMaxLength(2000);
+        job.Property(j => j.ArtifactContentType).HasMaxLength(256);
+        job.Property(j => j.ArtifactFileName).HasMaxLength(512);
         job.Property(j => j.LastError).HasMaxLength(4000);
         job.Property(j => j.Status).HasConversion<string>().HasMaxLength(32);
 

@@ -67,6 +67,7 @@ services:
       OxyKit.Mail__BaseAddress: http://mail:5026/
       OxyKit.Mail__ApiKey: ${FLOW_MAIL_API_KEY:-}
       OxyKit.Mail__ApiKeyHeader: X-Api-Key
+      Artifacts__Root: /data/artifacts
     volumes:
       - flow-data:/data
       - flow-output:/app/output

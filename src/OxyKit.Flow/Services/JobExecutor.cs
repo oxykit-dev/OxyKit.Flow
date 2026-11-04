@@ -13,6 +13,7 @@ public sealed class JobExecutor(
     FlowDbContext db,
     IEnumerable<IDocumentRenderer> engines,
     IEnumerable<IOutputProvider> outputs,
+    IArtifactCache artifactCache,
     ILogger<JobExecutor> logger
 )
 {
@@ -72,24 +73,40 @@ public sealed class JobExecutor(
             return;
         }
 
-        var engine =
-            engines.FirstOrDefault(e =>
-                string.Equals(e.Name, job.RenderEngine, StringComparison.OrdinalIgnoreCase)
-            )
-            ?? throw new InvalidOperationException(
-                $"No render engine named '{job.RenderEngine}'."
+        var artifact = await artifactCache.TryGetAsync(job.Id, cancellationToken);
+        if (artifact is not null)
+        {
+            logger.LogInformation("Job {JobId} using cached render artifact", job.Id);
+        }
+        else
+        {
+            var engine =
+                engines.FirstOrDefault(e =>
+                    string.Equals(e.Name, job.RenderEngine, StringComparison.OrdinalIgnoreCase)
+                )
+                ?? throw new InvalidOperationException(
+                    $"No render engine named '{job.RenderEngine}'."
+                );
+
+            using var bodyDoc = JsonDocument.Parse(job.RenderBodyJson);
+            artifact = await engine.RenderAsync(
+                new RenderRequest
+                {
+                    Input = job.RenderInput,
+                    Output = job.RenderOutput,
+                    Body = bodyDoc.RootElement.Clone(),
+                },
+                cancellationToken
             );
 
-        using var bodyDoc = JsonDocument.Parse(job.RenderBodyJson);
-        var artifact = await engine.RenderAsync(
-            new RenderRequest
-            {
-                Input = job.RenderInput,
-                Output = job.RenderOutput,
-                Body = bodyDoc.RootElement.Clone(),
-            },
-            cancellationToken
-        );
+            await artifactCache.StoreAsync(job.Id, artifact, cancellationToken);
+            job.ArtifactContentType = artifact.ContentType;
+            job.ArtifactFileName = artifact.FileName;
+            job.ArtifactCachedAt = DateTime.UtcNow;
+            job.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Job {JobId} cached render artifact", job.Id);
+        }
 
         foreach (var delivery in deliveries)
         {

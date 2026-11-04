@@ -6,6 +6,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- **Render artifact cache:** filesystem under `Artifacts:Root` (default `data/artifacts`); delivery-only retries reuse cached bytes instead of re-calling Render. Cleared on `Completed`; kept on `DeadLettered` / admin requeue. Compose sets `Artifacts__Root=/data/artifacts`
+- **Terminal webhooks:** optional create-time `webhookUrl` (or host `Webhooks:DefaultUrl`); best-effort POST of job payload on `Completed` / `DeadLettered`. Optional `Webhooks:SigningSecret` → `X-OxyKit-Flow-Signature: sha256=…`. Failures never change job status
+- Suite `scripts/compose-bootstrap-mail.sh` (mirrored in `deploy/compose/`) — mint Mail API key, write `FLOW_MAIL_API_KEY`, recreate Flow; used by `compose-e2e.sh`
 - Per-output **zip packaging**: optional `"zip": true` on a delivery wraps the single render artifact (`System.IO.Compression`) before `file` / `mail` / `ftp` / `sftp` — not a separate provider. Path destinations naming a file are rewritten to `.zip` when needed; directory destinations and mail To addresses use the packaged `Artifact.FileName`. Password-protected and multi-entry archives remain deferred.
 - **file / ftp / sftp:** write to `*.partial` then rename into the final path (overwrite) to avoid sibling finals after a mid-write crash; retry after checkpoint miss still overwrites the final path
 - Observability via NuGet `OxyKit.Observability` + `OxyKit.OpenTelemetry` (JSON console, `X-Correlation-Id` + outbound propagation, optional OTLP); `FlowTelemetry` job meters/Activity
@@ -27,10 +30,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `IOutputProvider.SendAsync` takes `DeliveryContext` and returns `DeliveryResult`
 - Job executor skips render when all deliveries are already succeeded; idempotency races require a unique-constraint violation (not any `DbUpdateException`)
 - Job executor asserts `JobDelivery.Provider` matches `OutputsJson` before send
-
-### Planned
-
-- Render artifact cache (avoid re-render on delivery-only retry)
 
 ## [0.1.0] - 2026-10-22
 

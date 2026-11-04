@@ -103,37 +103,6 @@ EOF
   fi
 }
 
-bootstrap_mail_key() {
-  local needs login_body token key_body key
-  needs="$(curl -sf "$MAIL_URL/api/v1/setup/needs-admin")" || die "needs-admin failed"
-  if [[ "$(json_get "$needs" 'str(data["needsAdmin"]).lower()')" == "true" ]]; then
-    curl -sf -X POST "$MAIL_URL/api/v1/setup/create-admin" \
-      -H 'Content-Type: application/json' \
-      -d '{"userName":"e2e-admin","email":"e2e-admin@example.com","password":"OxYk1t-Compose-E2E-9f3a!"}' \
-      >/dev/null || die "create-admin failed"
-    log "ok  mail admin created"
-  else
-    log "ok  mail admin already exists"
-  fi
-
-  login_body="$(curl -sf -X POST "$MAIL_URL/api/v1/auth/login" \
-    -H 'Content-Type: application/json' \
-    -d '{"identifier":"e2e-admin","password":"OxYk1t-Compose-E2E-9f3a!","deviceId":"compose-e2e"}')" \
-    || die "mail login failed (use a fresh mail-data volume or set RUN_MAIL=0)"
-  token="$(json_get "$login_body" 'data["token"]')"
-  [[ -n "$token" ]] || die "login returned empty token"
-
-  key_body="$(curl -sf -X POST "$MAIL_URL/api/v1/apikeys" \
-    -H "Authorization: Bearer $token" \
-    -H 'Content-Type: application/json' \
-    -d '{"label":"compose-e2e"}')" \
-    || die "create apikey failed"
-  key="$(json_get "$key_body" 'data["plainApiKey"]')"
-  [[ -n "$key" ]] || die "create apikey returned empty plainApiKey"
-  [[ "$key" == *.* && ${#key} -gt 40 ]] || die "create apikey returned unexpected key shape"
-  printf '%s' "$key"
-}
-
 create_file_job() {
   local idem="compose-e2e-file-$(date +%s)"
   curl -sf -X POST "$FLOW_URL/api/v1/jobs/" \
@@ -213,26 +182,9 @@ log "file job id=$file_id"
 poll_job "$file_id" file
 
 if [[ "$RUN_MAIL" == "1" ]]; then
-  mail_key="$(bootstrap_mail_key)"
-  log "ok  mail API key minted (not printed)"
-  # Persist into .env so Compose substitution picks it up (shell-only env is flaky with some compose CLIs)
-  MAIL_KEY="$mail_key" python3 - <<'PY'
-import os, pathlib, re
-key = os.environ["MAIL_KEY"]
-# Quote — Mail keys are "{guid}.{base64}" and often contain '=', '+', '/'
-quoted = '"' + key.replace("\\", "\\\\").replace('"', '\\"') + '"'
-path = pathlib.Path(".env")
-text = path.read_text() if path.exists() else ""
-line = f"FLOW_MAIL_API_KEY={quoted}"
-if re.search(r"^FLOW_MAIL_API_KEY=", text, flags=re.M):
-    text = re.sub(r"^FLOW_MAIL_API_KEY=.*$", line, text, count=1, flags=re.M)
-else:
-    text = text.rstrip() + "\n" + line + "\n"
-path.write_text(text)
-PY
-  unset mail_key MAIL_KEY
-  compose up -d --force-recreate flow
-  wait_http "$FLOW_URL/health" flow
+  MAIL_URL="$MAIL_URL" FLOW_URL="$FLOW_URL" RECREATE_FLOW=1 KEY_LABEL=compose-e2e \
+    "$ROOT/scripts/compose-bootstrap-mail.sh" \
+    || die "compose-bootstrap-mail.sh failed (fresh mail-data volume or set RUN_MAIL=0)"
 
   mail_body="$(create_mail_job)" || die "create mail job failed"
   mail_id="$(json_get "$mail_body" 'data["id"]')"

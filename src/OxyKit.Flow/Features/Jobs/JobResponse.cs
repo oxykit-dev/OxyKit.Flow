@@ -40,6 +40,7 @@ public sealed class JobResponse
     public required IReadOnlyList<JobDeliveryResponse> Deliveries { get; init; }
     public required int AttemptCount { get; init; }
     public required int MaxAttempts { get; init; }
+    public string? WebhookUrl { get; init; }
     public string? LastError { get; init; }
     public required DateTime CreatedAt { get; init; }
     public required DateTime UpdatedAt { get; init; }
@@ -59,6 +60,7 @@ public sealed class JobResponse
             Deliveries = deliveries.Select(JobDeliveryResponse.From).ToList(),
             AttemptCount = job.AttemptCount,
             MaxAttempts = job.MaxAttempts,
+            WebhookUrl = job.WebhookUrl,
             LastError = job.LastError,
             CreatedAt = job.CreatedAt,
             UpdatedAt = job.UpdatedAt,

@@ -23,6 +23,17 @@ namespace OxyKit.Flow.Infrastructure.Sqlite.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("ArtifactCachedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ArtifactContentType")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ArtifactFileName")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("AttemptCount")
                         .HasColumnType("INTEGER");
 
@@ -82,6 +93,10 @@ namespace OxyKit.Flow.Infrastructure.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WebhookUrl")
+                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

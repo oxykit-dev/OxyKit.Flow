@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OxyKit.Flow.Common.Observability;
 using OxyKit.Flow.Infrastructure;
@@ -56,6 +57,8 @@ public sealed class JobQueueProcessor(
         var db = scope.ServiceProvider.GetRequiredService<FlowDbContext>();
         var claims = scope.ServiceProvider.GetRequiredService<IJobClaimStore>();
         var executor = scope.ServiceProvider.GetRequiredService<JobExecutor>();
+        var webhooks = scope.ServiceProvider.GetRequiredService<IJobWebhookDispatcher>();
+        var artifactCache = scope.ServiceProvider.GetRequiredService<IArtifactCache>();
         var opts = options.Value;
         var timeout = TimeSpan.FromSeconds(Math.Max(30, opts.ProcessingTimeoutSeconds));
 
@@ -87,6 +90,7 @@ public sealed class JobQueueProcessor(
             );
 
             var sw = Stopwatch.StartNew();
+            var terminal = false;
             try
             {
                 logger.LogInformation(
@@ -102,6 +106,7 @@ public sealed class JobQueueProcessor(
                 FlowTelemetry.JobsSucceeded.Add(1);
                 activity?.SetStatus(ActivityStatusCode.Ok);
                 logger.LogInformation("Job {JobId} completed", job.Id);
+                terminal = true;
             }
             catch (Exception ex)
             {
@@ -123,6 +128,7 @@ public sealed class JobQueueProcessor(
                         job.AttemptCount,
                         job.MaxAttempts
                     );
+                    await db.SaveChangesAsync(cancellationToken);
                 }
                 else
                 {
@@ -130,17 +136,61 @@ public sealed class JobQueueProcessor(
                         $"Max attempts ({job.MaxAttempts}) exceeded. Last error: {Truncate(ex.Message)}"
                     );
                     logger.LogError("Job {JobId} dead-lettered", job.Id);
+                    await db.SaveChangesAsync(cancellationToken);
+                    terminal = true;
                 }
-
-                await db.SaveChangesAsync(cancellationToken);
             }
             finally
             {
                 sw.Stop();
                 FlowTelemetry.JobDurationMs.Record(sw.Elapsed.TotalMilliseconds);
-                CorrelationContext.Current = null;
             }
+
+            // Side effects after a durable terminal status — never change job status again.
+            if (terminal)
+            {
+                try
+                {
+                    var deliveries = await LoadDeliveriesAsync(db, job.Id, cancellationToken);
+                    await webhooks.NotifyTerminalAsync(job, deliveries, cancellationToken);
+                    if (job.Status == JobStatus.Completed)
+                    {
+                        await artifactCache.DeleteAsync(job.Id, cancellationToken);
+                        ClearArtifactColumns(job);
+                        await db.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(
+                        ex,
+                        "Post-terminal side effects failed for job {JobId} (status unchanged)",
+                        job.Id
+                    );
+                }
+            }
+
+            CorrelationContext.Current = null;
         }
+    }
+
+    private static async Task<IReadOnlyList<JobDelivery>> LoadDeliveriesAsync(
+        FlowDbContext db,
+        Guid jobId,
+        CancellationToken cancellationToken
+    ) =>
+        await db
+            .JobDeliveries.AsNoTracking()
+            .Where(d => d.JobId == jobId)
+            .OrderBy(d => d.Ordinal)
+            .ToListAsync(cancellationToken);
+
+    private static void ClearArtifactColumns(Job job)
+    {
+        job.ArtifactContentType = null;
+        job.ArtifactFileName = null;
+        job.ArtifactCachedAt = null;
+        job.UpdatedAt = DateTime.UtcNow;
     }
 
     private static string Truncate(string message) =>

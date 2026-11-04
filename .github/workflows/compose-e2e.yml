@@ -45,7 +45,8 @@ jobs:
           cp -R OxyKit.Flow/deploy/compose/docker ./docker
           mkdir -p scripts
           cp OxyKit.Flow/deploy/compose/compose-e2e.sh scripts/compose-e2e.sh
-          chmod +x scripts/compose-e2e.sh
+          cp OxyKit.Flow/deploy/compose/compose-bootstrap-mail.sh scripts/compose-bootstrap-mail.sh
+          chmod +x scripts/compose-e2e.sh scripts/compose-bootstrap-mail.sh
           cp OxyKit.Flow/deploy/compose/.env.example .env
           sed -i \
             -e 's/change-me-to-a-jwt-signing-key-at-least-32-chars/compose-e2e-jwt-signing-key-32chars-min/' \

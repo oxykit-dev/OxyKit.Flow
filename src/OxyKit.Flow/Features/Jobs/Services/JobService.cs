@@ -31,6 +31,7 @@ public sealed class JobService(
         string renderOutput,
         JsonElement renderBody,
         IReadOnlyList<DeliveryRequest> outputs,
+        string? webhookUrl = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -42,6 +43,10 @@ public sealed class JobService(
             return Error.Validation(description: "render.body is required.");
         if (outputs.Count == 0)
             return Error.Validation(description: "At least one output is required.");
+
+        var webhookError = JobWebhookDispatcher.ValidateWebhookUrl(webhookUrl);
+        if (webhookError is not null)
+            return Error.Validation(description: webhookError);
 
         string engine;
         try
@@ -88,6 +93,7 @@ public sealed class JobService(
             RenderOutput = renderOutput.Trim().ToLowerInvariant(),
             RenderBodyJson = renderBody.GetRawText(),
             OutputsJson = JobDeliverySerializer.Serialize(outputs),
+            WebhookUrl = string.IsNullOrWhiteSpace(webhookUrl) ? null : webhookUrl.Trim(),
             MaxAttempts = Math.Max(1, options.Value.DefaultMaxAttempts),
             CreatedAt = now,
             UpdatedAt = now,

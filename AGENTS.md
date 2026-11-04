@@ -59,9 +59,10 @@ hoppscotch/
 
 ## Pipeline
 
-`POST /api/v1/jobs` (+ optional `Idempotency-Key`) -> persist `Job` + `JobDelivery` rows (Queued) ->
-`IJobClaimStore` claims (SQLite tx / Postgres `SKIP LOCKED`) -> `JobExecutor` (resolve `IDocumentRenderer` by `render.engine`) ->
-each pending `IOutputProvider` (skip succeeded; Mail sends `Idempotency-Key`) -> `Completed` / re-queue / `DeadLettered`.
+`POST /api/v1/jobs` (+ optional `Idempotency-Key`, optional `webhookUrl`) -> persist `Job` + `JobDelivery` rows (Queued) ->
+`IJobClaimStore` claims (SQLite tx / Postgres `SKIP LOCKED`) -> `JobExecutor` (load artifact cache or render via `IDocumentRenderer`) ->
+each pending `IOutputProvider` (skip succeeded; Mail sends `Idempotency-Key`) -> `Completed` / re-queue / `DeadLettered` ->
+optional webhook POST → delete artifact cache on `Completed`.
 
 Admin: `GET /api/v1/jobs` (`status`, `limit` 1–100) · `POST /api/v1/jobs/{id}/retry` (DeadLettered only → Queued, fresh attempts; succeeded deliveries stay skipped).
 
@@ -70,6 +71,10 @@ Admin: `GET /api/v1/jobs` (`status`, `limit` 1–100) · `POST /api/v1/jobs/{id}
 | `DatabaseProvider` | `SQLite` (default) \| `PostgreSQL` |
 | `ConnectionStrings:SQLiteConnection` | e.g. `Data Source=data/oxykit-flow.db` |
 | `ConnectionStrings:PostgreSQLConnection` | e.g. `Host=…;Database=oxykit_flow;…` |
+| `Artifacts:Root` | filesystem cache root (default `data/artifacts`; compose `/data/artifacts`) |
+| `Webhooks:DefaultUrl` | fallback absolute http(s) URL when job omits `webhookUrl` |
+| `Webhooks:SigningSecret` | optional HMAC-SHA256 over POST body → `X-OxyKit-Flow-Signature` |
+| `Webhooks:TimeoutSeconds` | best-effort POST timeout (default 5) |
 
 Use **PostgreSQL** when running multiple Flow workers against one store.
 
@@ -109,7 +114,9 @@ Shared libs (NuGet): `OxyKit.Observability` + `OxyKit.OpenTelemetry` — see [Ob
 - Output routing: job `provider` == `IOutputProvider.Name`
 - Client idempotency via unique `Idempotency-Key`; processor claim via `IJobClaimStore` (provider-specific) + status
 - Delivery checkpoints: `JobDelivery` per output; retries skip `Succeeded`; Mail key `{jobId:N}:{ordinal}`
-- **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`). Requires `OxyKit.Mail:ApiKey` (compose: `FLOW_MAIL_API_KEY` after Mail bootstrap + Flow restart) — empty key → mail deliveries fail
+- Artifact cache: `IArtifactCache` / `FileArtifactCache` under `Artifacts:Root`; skip Render on delivery-only retry; clear on `Completed`
+- Webhooks: best-effort only (`IJobWebhookDispatcher`); never fail or re-queue the job on webhook errors
+- **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`). Requires `OxyKit.Mail:ApiKey` (compose: `./scripts/compose-bootstrap-mail.sh` or manual `FLOW_MAIL_API_KEY` + Flow restart) — empty key → mail deliveries fail
 - **file / ftp / sftp:** checkpoint skip on retry; write via `*.partial` then rename/move into the final path (overwrite). Crash mid-write leaves partial, not a second final sibling; crash after finalize but before Flow saves `Succeeded` still re-sends (overwrite). Mail hole closed via `Idempotency-Key`
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets

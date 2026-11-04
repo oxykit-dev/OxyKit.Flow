@@ -129,6 +129,67 @@ public sealed class JobApiTests : IClassFixture<FlowWebApplicationFactory>, IDis
     }
 
     [Fact]
+    public async Task CreateJob_WithWebhookUrl_Persists()
+    {
+        var create = await _client.PostAsJsonAsync(
+            "/api/v1/jobs/",
+            new
+            {
+                name = "webhook-smoke",
+                webhookUrl = "https://example.com/oxykit-flow-hook",
+                render = new
+                {
+                    input = "table",
+                    output = "html",
+                    body = new
+                    {
+                        sheets = new[]
+                        {
+                            new
+                            {
+                                name = "Orders",
+                                headers = new[] { "Id" },
+                                rows = new object[] { new object[] { 1 } },
+                            },
+                        },
+                    },
+                },
+                outputs = new[]
+                {
+                    new { provider = "file", destination = "output/webhook_smoke.html" },
+                },
+            },
+            TestContext.Current.CancellationToken
+        );
+        create.StatusCode.Should().BeOneOf(HttpStatusCode.Created, HttpStatusCode.OK);
+        var created = await create.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken
+        );
+        created.GetProperty("webhookUrl").GetString().Should().Be("https://example.com/oxykit-flow-hook");
+
+        var bad = await _client.PostAsJsonAsync(
+            "/api/v1/jobs/",
+            new
+            {
+                name = "webhook-bad",
+                webhookUrl = "not-a-url",
+                render = new
+                {
+                    input = "table",
+                    output = "html",
+                    body = new { sheets = Array.Empty<object>() },
+                },
+                outputs = new[]
+                {
+                    new { provider = "file", destination = "output/x.html" },
+                },
+            },
+            TestContext.Current.CancellationToken
+        );
+        bad.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task CreateJob_ExplicitDefaultEngine_Persists()
     {
         var create = await _client.PostAsJsonAsync(

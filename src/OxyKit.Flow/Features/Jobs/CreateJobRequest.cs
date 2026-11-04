@@ -10,6 +10,12 @@ public sealed class CreateJobRequest
     public required RenderSpec Render { get; init; }
 
     public required List<DeliveryRequest> Outputs { get; init; }
+
+    /// <summary>
+    /// Optional absolute http(s) URL notified on Completed / DeadLettered.
+    /// Overrides host <c>Webhooks:DefaultUrl</c> when set.
+    /// </summary>
+    public string? WebhookUrl { get; init; }
 }
 
 public sealed class RenderSpec
