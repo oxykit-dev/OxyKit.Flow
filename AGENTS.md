@@ -110,7 +110,7 @@ Shared libs (NuGet): `OxyKit.Observability` + `OxyKit.OpenTelemetry` — see [Ob
 - Client idempotency via unique `Idempotency-Key`; processor claim via `IJobClaimStore` (provider-specific) + status
 - Delivery checkpoints: `JobDelivery` per output; retries skip `Succeeded`; Mail key `{jobId:N}:{ordinal}`
 - **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`). Requires `OxyKit.Mail:ApiKey` (compose: `FLOW_MAIL_API_KEY` after Mail bootstrap + Flow restart) — empty key → mail deliveries fail
-- **file / ftp / sftp:** checkpoint skip on retry; **no sink-level idempotency** — crash after a successful write/upload but before Flow saves `Succeeded` can duplicate on retry (Mail hole closed via `Idempotency-Key`)
+- **file / ftp / sftp:** checkpoint skip on retry; write via `*.partial` then rename/move into the final path (overwrite). Crash mid-write leaves partial, not a second final sibling; crash after finalize but before Flow saves `Succeeded` still re-sends (overwrite). Mail hole closed via `Idempotency-Key`
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets
 - `Security:ApiKey` required at startup (ValidateOnStart; not the placeholder)

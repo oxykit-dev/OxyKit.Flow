@@ -1,5 +1,3 @@
-using OxyKit.Flow.Abstractions;
-
 namespace OxyKit.Flow.Tests;
 
 /// <summary>Stand-in third-party engine used to exercise Kind=assembly loading.</summary>

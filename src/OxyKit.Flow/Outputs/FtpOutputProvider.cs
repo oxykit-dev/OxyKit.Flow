@@ -50,10 +50,11 @@ public sealed class FtpOutputProvider(
             if (parent is not "/" and not "")
                 await client.CreateDirectory(parent, true, cancellationToken);
 
+            var partialPath = remotePath + ".partial";
             await using var stream = new MemoryStream(artifact.Content, writable: false);
             var status = await client.UploadStream(
                 stream,
-                remotePath,
+                partialPath,
                 FtpRemoteExists.Overwrite,
                 createRemoteDir: false,
                 token: cancellationToken
@@ -62,9 +63,14 @@ public sealed class FtpOutputProvider(
             if (status is FtpStatus.Failed)
             {
                 throw new InvalidOperationException(
-                    $"FTP upload failed for profile '{request.Profile}' → {remotePath}."
+                    $"FTP upload failed for profile '{request.Profile}' → {partialPath}."
                 );
             }
+
+            // Rename into place so a crash mid-upload leaves *.partial, not a half final file.
+            if (await client.FileExists(remotePath, cancellationToken))
+                await client.DeleteFile(remotePath, cancellationToken);
+            await client.Rename(partialPath, remotePath, token: cancellationToken);
 
             logger.LogInformation(
                 "FTP uploaded {Bytes} bytes via profile {Profile} → {RemotePath} (status={Status})",

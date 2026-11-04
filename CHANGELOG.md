@@ -7,6 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Per-output **zip packaging**: optional `"zip": true` on a delivery wraps the single render artifact (`System.IO.Compression`) before `file` / `mail` / `ftp` / `sftp` — not a separate provider. Path destinations naming a file are rewritten to `.zip` when needed; directory destinations and mail To addresses use the packaged `Artifact.FileName`. Password-protected and multi-entry archives remain deferred.
+- **file / ftp / sftp:** write to `*.partial` then rename into the final path (overwrite) to avoid sibling finals after a mid-write crash; retry after checkpoint miss still overwrites the final path
 - Observability via NuGet `OxyKit.Observability` + `OxyKit.OpenTelemetry` (JSON console, `X-Correlation-Id` + outbound propagation, optional OTLP); `FlowTelemetry` job meters/Activity
 - Multi-provider job store: `OxyKit.Flow.Infrastructure` + `Infrastructure.Sqlite` / `Infrastructure.Postgres` (Mail-aligned `DatabaseProvider` switch)
 - Atomic job claim: SQLite write transaction; PostgreSQL `FOR UPDATE SKIP LOCKED` (multi-worker safe)

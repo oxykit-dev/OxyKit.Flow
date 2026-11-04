@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using OxyKit.Flow.Abstractions;
 using OxyKit.Flow.Infrastructure;
 using OxyKit.Flow.Outputs;
 using OxyKit.Flow.Services;

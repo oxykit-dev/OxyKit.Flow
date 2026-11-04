@@ -65,9 +65,21 @@ public sealed class SftpOutputProvider(
             var parent = TransferPathHelper.ParentDirectory(remotePath);
             EnsureRemoteDirectory(client, parent);
 
+            var partialPath = remotePath + ".partial";
             await using var stream = new MemoryStream(artifact.Content, writable: false);
             await Task.Run(
-                () => client.UploadFile(stream, remotePath, canOverride: true),
+                () => client.UploadFile(stream, partialPath, canOverride: true),
+                cancellationToken
+            );
+
+            // Rename into place so a crash mid-upload leaves *.partial, not a half final file.
+            await Task.Run(
+                () =>
+                {
+                    if (client.Exists(remotePath))
+                        client.DeleteFile(remotePath);
+                    client.RenameFile(partialPath, remotePath);
+                },
                 cancellationToken
             );
 

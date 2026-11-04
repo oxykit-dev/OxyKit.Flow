@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using OxyKit.Flow.Abstractions;
 
 namespace OxyKit.Flow.Outputs;
 

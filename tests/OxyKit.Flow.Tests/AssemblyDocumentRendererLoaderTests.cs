@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OxyKit.Flow.Abstractions;
 using OxyKit.Flow.Common.Extensions;
 using OxyKit.Flow.Renderers;
 

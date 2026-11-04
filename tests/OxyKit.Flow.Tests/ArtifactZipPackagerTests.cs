@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using System.Text;
 using FluentAssertions;
-using OxyKit.Flow.Abstractions;
 using OxyKit.Flow.Outputs;
 
 namespace OxyKit.Flow.Tests;
