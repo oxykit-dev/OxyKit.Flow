@@ -1,6 +1,8 @@
 # Build context: suite root. Flow uses OxyKit.Render.Client from nuget.org (PackageReference).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY OxyKit.Observability/src/OxyKit.Observability/ OxyKit.Observability/src/OxyKit.Observability/
+COPY OxyKit.Observability/src/OxyKit.OpenTelemetry/ OxyKit.Observability/src/OxyKit.OpenTelemetry/
 COPY OxyKit.Flow/src/OxyKit.Flow.Abstractions/ OxyKit.Flow/src/OxyKit.Flow.Abstractions/
 COPY OxyKit.Flow/src/OxyKit.Flow.Infrastructure/ OxyKit.Flow/src/OxyKit.Flow.Infrastructure/
 COPY OxyKit.Flow/src/OxyKit.Flow.Infrastructure.Sqlite/ OxyKit.Flow/src/OxyKit.Flow.Infrastructure.Sqlite/

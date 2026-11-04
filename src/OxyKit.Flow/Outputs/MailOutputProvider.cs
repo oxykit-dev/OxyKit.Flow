@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
+using OxyKit.Observability;
 
 namespace OxyKit.Flow.Outputs;
 
@@ -84,6 +85,18 @@ public sealed class MailOutputProvider(
             Content = JsonContent.Create(payload, options: JsonOptions),
         };
         httpRequest.Headers.TryAddWithoutValidation("Idempotency-Key", context.IdempotencyKey);
+
+        var correlationId = context.CorrelationId ?? CorrelationContext.Current;
+        if (
+            !string.IsNullOrWhiteSpace(correlationId)
+            && !httpRequest.Headers.Contains(CorrelationHeaders.HeaderName)
+        )
+        {
+            httpRequest.Headers.TryAddWithoutValidation(
+                CorrelationHeaders.HeaderName,
+                correlationId
+            );
+        }
 
         using var response = await http.SendAsync(httpRequest, cancellationToken);
 

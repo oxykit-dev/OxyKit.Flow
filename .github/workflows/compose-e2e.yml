@@ -38,6 +38,13 @@ jobs:
           path: OxyKit.Mail
           token: ${{ secrets.SUITE_CHECKOUT_PAT || github.token }}
 
+      - name: Checkout Observability
+        uses: actions/checkout@v4
+        with:
+          repository: oxykit-dev/OxyKit.Observability
+          path: OxyKit.Observability
+          token: ${{ secrets.SUITE_CHECKOUT_PAT || github.token }}
+
       - name: Materialize suite compose layout
         run: |
           set -euo pipefail

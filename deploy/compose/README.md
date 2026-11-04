@@ -1,6 +1,6 @@
 # Suite compose bundle (CI)
 
-Mirror of the **suite-root** Compose golden path so Flow CI can assemble sibling checkouts of Render + Mail + Flow.
+Mirror of the **suite-root** Compose golden path so Flow CI can assemble sibling checkouts of Render + Mail + Flow + **Observability**.
 
 | Local suite checkout | This folder (Flow repo) |
 |----------------------|-------------------------|

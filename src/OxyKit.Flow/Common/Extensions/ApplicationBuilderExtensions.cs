@@ -1,4 +1,5 @@
 using FastEndpoints;
+using OxyKit.Observability;
 using Scalar.AspNetCore;
 
 namespace OxyKit.Flow.Common.Extensions;
@@ -7,6 +8,7 @@ public static class ApplicationBuilderExtensions
 {
     public static WebApplication UseOxyKitFlowPipeline(this WebApplication app)
     {
+        app.UseOxyKitCorrelation();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseFastEndpoints(c =>

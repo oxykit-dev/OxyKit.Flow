@@ -29,6 +29,7 @@ Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-ke
 | `http://localhost:5077` | API |
 | `X-OxyKit-Flow-Key: dev-flow-key` | Dev API key |
 | `GET /health` | Health |
+| `X-Correlation-Id` | Optional; echoed; propagated to Render/Mail on job work |
 | `/scalar`, `/openapi/v1.json` | OpenAPI UI + JSON (Development only) |
 | `POST /api/v1/jobs` (+ optional `Idempotency-Key`) | Create job |
 | `GET /api/v1/jobs` (`status`, `limit`) | List jobs (newest first) |
@@ -42,6 +43,8 @@ dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 **Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), optional **Jobs — mail**, then **Jobs — admin** (list / retry).
 
 Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Layout and constraints: [AGENTS.md](./AGENTS.md).
+
+Observability: shared [`OxyKit.Observability`](../OxyKit.Observability/) + [`OxyKit.OpenTelemetry`](../OxyKit.Observability/) (JSON stdout; correlation propagated to Render/Mail; optional OTLP). Docs: [oxykit.dev/guide/observability](https://oxykit.dev/guide/observability).
 
 ## Docs
 

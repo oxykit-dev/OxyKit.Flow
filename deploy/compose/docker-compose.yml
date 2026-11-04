@@ -5,8 +5,8 @@
 services:
   render:
     build:
-      context: ./OxyKit.Render
-      dockerfile: ../docker/render.Dockerfile
+      context: .
+      dockerfile: ./docker/render.Dockerfile
     ports:
       - "5066:5066"
     environment:
@@ -26,8 +26,8 @@ services:
 
   mail:
     build:
-      context: ./OxyKit.Mail
-      dockerfile: ../docker/mail.Dockerfile
+      context: .
+      dockerfile: ./docker/mail.Dockerfile
     ports:
       - "5026:5026"
     env_file:

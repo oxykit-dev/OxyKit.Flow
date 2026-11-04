@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Options;
+using OxyKit.Flow.Common.Observability;
 using OxyKit.Flow.Infrastructure;
+using OxyKit.Observability;
 
 namespace OxyKit.Flow.Services;
 
@@ -60,9 +63,30 @@ public sealed class JobQueueProcessor(
 
         var batchSize = Math.Max(1, opts.BatchSize);
         var claimed = await claims.ClaimQueuedAsync(batchSize, cancellationToken);
+        if (claimed.Count > 0)
+            FlowTelemetry.JobsClaimed.Add(claimed.Count);
 
         foreach (var job in claimed)
         {
+            var correlationId = Guid.NewGuid().ToString("N");
+            CorrelationContext.Current = correlationId;
+            using var activity = FlowTelemetry.ActivitySource.StartActivity(
+                "flow.job.process",
+                ActivityKind.Internal
+            );
+            activity?.SetTag("correlation.id", correlationId);
+            activity?.SetTag("job.id", job.Id.ToString("D"));
+            activity?.SetTag("job.attempt", job.AttemptCount);
+
+            using var logScope = logger.BeginScope(
+                new Dictionary<string, object>
+                {
+                    ["CorrelationId"] = correlationId,
+                    ["JobId"] = job.Id,
+                }
+            );
+
+            var sw = Stopwatch.StartNew();
             try
             {
                 logger.LogInformation(
@@ -75,10 +99,14 @@ public sealed class JobQueueProcessor(
                 await executor.ExecuteAsync(job, cancellationToken);
                 job.MarkAsCompleted();
                 await db.SaveChangesAsync(cancellationToken);
+                FlowTelemetry.JobsSucceeded.Add(1);
+                activity?.SetStatus(ActivityStatusCode.Ok);
                 logger.LogInformation("Job {JobId} completed", job.Id);
             }
             catch (Exception ex)
             {
+                FlowTelemetry.JobsFailed.Add(1);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 logger.LogError(
                     ex,
                     "Job {JobId} failed on attempt {Attempt}",
@@ -105,6 +133,12 @@ public sealed class JobQueueProcessor(
                 }
 
                 await db.SaveChangesAsync(cancellationToken);
+            }
+            finally
+            {
+                sw.Stop();
+                FlowTelemetry.JobDurationMs.Record(sw.Elapsed.TotalMilliseconds);
+                CorrelationContext.Current = null;
             }
         }
     }

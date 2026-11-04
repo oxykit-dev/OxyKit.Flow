@@ -1,9 +1,12 @@
-# Build context: OxyKit.Mail/
+# Build context: suite root (needs sibling OxyKit.Observability).
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY . .
-RUN dotnet restore src/OxyKit.Mail/OxyKit.Mail.csproj \
-    && dotnet publish src/OxyKit.Mail/OxyKit.Mail.csproj -c Release -o /app/publish --no-restore
+COPY OxyKit.Observability/src/OxyKit.Observability/ OxyKit.Observability/src/OxyKit.Observability/
+COPY OxyKit.Observability/src/OxyKit.OpenTelemetry/ OxyKit.Observability/src/OxyKit.OpenTelemetry/
+COPY OxyKit.Mail/src/ OxyKit.Mail/src/
+WORKDIR /src/OxyKit.Mail/src/OxyKit.Mail
+RUN dotnet restore OxyKit.Mail.csproj \
+    && dotnet publish OxyKit.Mail.csproj -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

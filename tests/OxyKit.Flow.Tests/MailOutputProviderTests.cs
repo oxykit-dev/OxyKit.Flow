@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OxyKit.Flow.Outputs;
+using OxyKit.Observability;
 
 namespace OxyKit.Flow.Tests;
 
@@ -15,7 +16,12 @@ namespace OxyKit.Flow.Tests;
 public sealed class MailOutputProviderTests
 {
     private static readonly DeliveryContext SampleContext =
-        new() { JobId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), Ordinal = 0 };
+        new()
+        {
+            JobId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            Ordinal = 0,
+            CorrelationId = "flow-mail-corr-001",
+        };
 
     [Theory]
     [InlineData(HttpStatusCode.OK, "sent")]
@@ -42,6 +48,7 @@ public sealed class MailOutputProviderTests
         result.ExternalId.Should().Be("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         handler.LastPath.Should().Be("api/v1/email/send");
         handler.LastIdempotencyKey.Should().Be(SampleContext.IdempotencyKey);
+        handler.LastCorrelationId.Should().Be(SampleContext.CorrelationId);
         using var doc = JsonDocument.Parse(handler.LastBody!);
         var root = doc.RootElement;
         root.GetProperty("to").GetString().Should().Be("ops@example.com");
@@ -238,6 +245,7 @@ public sealed class MailOutputProviderTests
         public string? LastPath { get; private set; }
         public string? LastBody { get; private set; }
         public string? LastIdempotencyKey { get; private set; }
+        public string? LastCorrelationId { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -249,6 +257,9 @@ public sealed class MailOutputProviderTests
 
             if (request.Headers.TryGetValues("Idempotency-Key", out var values))
                 LastIdempotencyKey = values.FirstOrDefault();
+
+            if (request.Headers.TryGetValues(CorrelationHeaders.HeaderName, out var corr))
+                LastCorrelationId = corr.FirstOrDefault();
 
             if (request.Content is not null)
                 LastBody = await request.Content.ReadAsStringAsync(cancellationToken);

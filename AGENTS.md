@@ -91,6 +91,14 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 
 **Zip packaging (not a provider):** optional `"zip": true` on any delivery — `ArtifactZipPackager` wraps the single render artifact then the real provider runs. File/ftp/sftp paths that name a file get a `.zip` extension when missing; directory destinations and mail To use packaged `FileName`. Password / multi-entry deferred. Cloud retain stays a separate module.
 
+## Observability
+
+Shared libs (suite ProjectReference): `OxyKit.Observability` + `OxyKit.OpenTelemetry` — see [`../OxyKit.Observability/AGENTS.md`](../OxyKit.Observability/AGENTS.md).
+
+- **Logs / correlation:** `AddOxyKitJsonConsole` + `UseOxyKitCorrelation`; outbound Mail/Render via `CorrelationIdPropagatingHandler`
+- **OTel:** `AddOxyKitOpenTelemetry` with `FlowTelemetry` source/meter names; off by default
+- Product meters stay in `Common/Observability/FlowTelemetry.cs`
+
 ## Hard constraints
 
 - **No in-process generators** - render via named HTTP engines (`IDocumentRenderer`)

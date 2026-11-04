@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using OxyKit.Flow.Abstractions;
 using OxyKit.Flow.Renderers;
+using OxyKit.Observability;
 using OxyKit.Render.Client;
 
 namespace OxyKit.Flow.Common.Extensions;
@@ -141,13 +142,22 @@ public static class RenderEngineServiceCollectionExtensions
             );
         }
 
-        var client = new RenderClient(
-            new RenderClientOptions
-            {
-                BaseAddress = new Uri(opts.BaseAddress),
-                ApiKey = opts.ApiKey,
-            }
-        );
+        var http = new HttpClient(
+            new CorrelationIdPropagatingHandler { InnerHandler = new HttpClientHandler() }
+        )
+        {
+            BaseAddress = new Uri(opts.BaseAddress),
+        };
+        if (!string.IsNullOrWhiteSpace(opts.ApiKey))
+        {
+            http.DefaultRequestHeaders.TryAddWithoutValidation(
+                "X-OxyKit-Render-Key",
+                opts.ApiKey
+            );
+        }
+
+        // Prefer HttpClient injection so outbound calls pick up ambient X-Correlation-Id.
+        var client = new RenderClient(http);
         return new OxyKitRenderEngine(engineName, client);
     }
 }

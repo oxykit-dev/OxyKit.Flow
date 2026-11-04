@@ -3,12 +3,22 @@ using Microsoft.Extensions.Options;
 using NSwag;
 using OxyKit.Flow.Common;
 using OxyKit.Flow.Common.Extensions;
+using OxyKit.Flow.Common.Observability;
 using OxyKit.Flow.Features.Jobs.Services;
 using OxyKit.Flow.Outputs;
 using OxyKit.Flow.Services;
+using OxyKit.Observability;
+using OxyKit.OpenTelemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddOxyKitJsonConsole();
+builder.AddOxyKitOpenTelemetry(o =>
+{
+    o.ServiceName = "OxyKit.Flow";
+    o.ActivitySources = [FlowTelemetry.ActivitySourceName];
+    o.Meters = [FlowTelemetry.MeterName];
+});
 builder.Services.AddOxyKitFlowHost();
 builder.Services.AddOxyKitFlowDatabase(builder.Configuration);
 builder.Services.Configure<JobOptions>(builder.Configuration.GetSection(JobOptions.SectionName));
@@ -22,20 +32,23 @@ builder.Services.AddDocumentRenderers(
     builder.Environment.ContentRootPath
 );
 
-builder.Services.AddHttpClient(
-    MailOutputProvider.HttpClientName,
-    (sp, http) =>
-    {
-        var mail = sp.GetRequiredService<IOptions<MailOutputOptions>>().Value;
-        var baseAddress = mail.BaseAddress.ToString();
-        if (!baseAddress.EndsWith('/'))
-            baseAddress += "/";
-        http.BaseAddress = new Uri(baseAddress);
-        http.Timeout = TimeSpan.FromSeconds(mail.TimeoutSeconds <= 0 ? 120 : mail.TimeoutSeconds);
-        if (!string.IsNullOrWhiteSpace(mail.ApiKey))
-            http.DefaultRequestHeaders.TryAddWithoutValidation(mail.ApiKeyHeader, mail.ApiKey);
-    }
-);
+builder.Services.AddTransient<CorrelationIdPropagatingHandler>();
+builder
+    .Services.AddHttpClient(
+        MailOutputProvider.HttpClientName,
+        (sp, http) =>
+        {
+            var mail = sp.GetRequiredService<IOptions<MailOutputOptions>>().Value;
+            var baseAddress = mail.BaseAddress.ToString();
+            if (!baseAddress.EndsWith('/'))
+                baseAddress += "/";
+            http.BaseAddress = new Uri(baseAddress);
+            http.Timeout = TimeSpan.FromSeconds(mail.TimeoutSeconds <= 0 ? 120 : mail.TimeoutSeconds);
+            if (!string.IsNullOrWhiteSpace(mail.ApiKey))
+                http.DefaultRequestHeaders.TryAddWithoutValidation(mail.ApiKeyHeader, mail.ApiKey);
+        }
+    )
+    .AddHttpMessageHandler<CorrelationIdPropagatingHandler>();
 
 builder.Services.AddSingleton<IOutputProvider, FileOutputProvider>();
 builder.Services.AddSingleton<IOutputProvider, MailOutputProvider>();

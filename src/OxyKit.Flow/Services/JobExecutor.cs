@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OxyKit.Flow.Abstractions;
 using OxyKit.Flow.Infrastructure;
 using OxyKit.Flow.Outputs;
+using OxyKit.Observability;
 
 namespace OxyKit.Flow.Services;
 
@@ -18,6 +19,10 @@ public sealed class JobExecutor(
 {
     public async Task ExecuteAsync(Job job, CancellationToken cancellationToken = default)
     {
+        using var jobScope = logger.BeginScope(
+            new Dictionary<string, object> { ["JobId"] = job.Id }
+        );
+
         logger.LogInformation(
             "Executing job {JobId} ({Name}): {Engine} {Input}/{Output}",
             job.Id,
@@ -133,7 +138,12 @@ public sealed class JobExecutor(
                 );
             }
 
-            var context = new DeliveryContext { JobId = job.Id, Ordinal = delivery.Ordinal };
+            var context = new DeliveryContext
+            {
+                JobId = job.Id,
+                Ordinal = delivery.Ordinal,
+                CorrelationId = CorrelationContext.Current,
+            };
 
             try
             {

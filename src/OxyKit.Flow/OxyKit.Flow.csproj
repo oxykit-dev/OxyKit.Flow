@@ -27,6 +27,8 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
     <PackageReference Include="OxyKit.Render.Client" Version="0.1.2" />
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <ProjectReference Include="..\..\..\OxyKit.Observability\src\OxyKit.Observability\OxyKit.Observability.csproj" />
+    <ProjectReference Include="..\..\..\OxyKit.Observability\src\OxyKit.OpenTelemetry\OxyKit.OpenTelemetry.csproj" />
     <ProjectReference Include="..\OxyKit.Flow.Abstractions\OxyKit.Flow.Abstractions.csproj" />
     <ProjectReference Include="..\OxyKit.Flow.Infrastructure\OxyKit.Flow.Infrastructure.csproj" />
     <ProjectReference Include="..\OxyKit.Flow.Infrastructure.Sqlite\OxyKit.Flow.Infrastructure.Sqlite.csproj" />
