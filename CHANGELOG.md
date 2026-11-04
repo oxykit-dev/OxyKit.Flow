@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-04
+
 ### Added
 
 - **Render artifact cache:** filesystem under `Artifacts:Root` (default `data/artifacts`); delivery-only retries reuse cached bytes instead of re-calling Render. Cleared on `Completed`; kept on `DeadLettered` / admin requeue. Compose sets `Artifacts__Root=/data/artifacts`
