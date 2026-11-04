@@ -42,7 +42,7 @@ dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 
 **Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), optional **Jobs — mail**, then **Jobs — admin** (list / retry).
 
-Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Layout and constraints: [AGENTS.md](./AGENTS.md).
+Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Optional per-output `"zip": true`. `file` / `ftp` / `sftp` write via `*.partial` then rename (overwrite). Layout and constraints: [AGENTS.md](./AGENTS.md).
 
 Observability: NuGet [`OxyKit.Observability`](https://www.nuget.org/packages/OxyKit.Observability) + [`OxyKit.OpenTelemetry`](https://www.nuget.org/packages/OxyKit.OpenTelemetry) (JSON stdout; correlation propagated to Render/Mail; optional OTLP). Docs: [oxykit.dev/guide/observability](https://oxykit.dev/guide/observability).
 
