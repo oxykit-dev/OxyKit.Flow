@@ -1,8 +1,6 @@
-# Build context: suite root (needs sibling OxyKit.Observability).
+# Build context: suite root. Mail uses Observability packages from nuget.org.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY OxyKit.Observability/src/OxyKit.Observability/ OxyKit.Observability/src/OxyKit.Observability/
-COPY OxyKit.Observability/src/OxyKit.OpenTelemetry/ OxyKit.Observability/src/OxyKit.OpenTelemetry/
 COPY OxyKit.Mail/src/ OxyKit.Mail/src/
 WORKDIR /src/OxyKit.Mail/src/OxyKit.Mail
 RUN dotnet restore OxyKit.Mail.csproj \

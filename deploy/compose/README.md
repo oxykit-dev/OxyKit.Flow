@@ -1,6 +1,6 @@
 # Suite compose bundle (CI)
 
-Mirror of the **suite-root** Compose golden path so Flow CI can assemble sibling checkouts of Render + Mail + Flow + **Observability**.
+Mirror of the **suite-root** Compose golden path so Flow CI can assemble sibling checkouts of Render + Mail + Flow. Hosts restore `OxyKit.Observability` / `OxyKit.OpenTelemetry` from nuget.org.
 
 | Local suite checkout | This folder (Flow repo) |
 |----------------------|-------------------------|

@@ -44,7 +44,7 @@ dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 
 Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Layout and constraints: [AGENTS.md](./AGENTS.md).
 
-Observability: shared [`OxyKit.Observability`](../OxyKit.Observability/) + [`OxyKit.OpenTelemetry`](../OxyKit.Observability/) (JSON stdout; correlation propagated to Render/Mail; optional OTLP). Docs: [oxykit.dev/guide/observability](https://oxykit.dev/guide/observability).
+Observability: NuGet [`OxyKit.Observability`](https://www.nuget.org/packages/OxyKit.Observability) + [`OxyKit.OpenTelemetry`](https://www.nuget.org/packages/OxyKit.OpenTelemetry) (JSON stdout; correlation propagated to Render/Mail; optional OTLP). Docs: [oxykit.dev/guide/observability](https://oxykit.dev/guide/observability).
 
 ## Docs
 

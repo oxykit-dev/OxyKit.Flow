@@ -1,7 +1,6 @@
-# Build context: suite root (needs sibling OxyKit.Observability).
+# Build context: suite root. Render uses OxyKit.Observability from nuget.org.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY OxyKit.Observability/src/OxyKit.Observability/ OxyKit.Observability/src/OxyKit.Observability/
 COPY OxyKit.Render/src/OxyKit.Render.Contracts/ OxyKit.Render/src/OxyKit.Render.Contracts/
 COPY OxyKit.Render/src/OxyKit.Render.Core/ OxyKit.Render/src/OxyKit.Render.Core/
 COPY OxyKit.Render/src/OxyKit.Render.Api/ OxyKit.Render/src/OxyKit.Render.Api/
