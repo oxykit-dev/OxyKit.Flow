@@ -102,7 +102,7 @@ path = pathlib.Path(".env")
 text = path.read_text() if path.exists() else ""
 line = f"FLOW_MAIL_API_KEY={quoted}"
 if re.search(r"^FLOW_MAIL_API_KEY=", text, flags=re.M):
-    text = re.sub(r"^FLOW_MAIL_API_KEY=.*$", line, count=1, flags=re.M)
+    text = re.sub(r"^FLOW_MAIL_API_KEY=.*$", line, text, count=1, flags=re.M)
 else:
     text = text.rstrip() + "\n" + line + "\n"
 path.write_text(text)

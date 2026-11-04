@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `compose-bootstrap-mail.sh`: pass the `.env` body into `re.sub` when rewriting `FLOW_MAIL_API_KEY` (compose-e2e was crashing after minting the key)
+
 ## [0.1.2] - 2026-11-04
 
 ### Added
