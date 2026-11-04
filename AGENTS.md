@@ -33,7 +33,7 @@ Companion engine: HTTP to OxyKit.Render via named `IDocumentRenderer` (default `
 | Hoppscotch | `hoppscotch/` (do not paste JSON into chat) |
 | Compose E2E | `deploy/compose/` + `.github/workflows/compose-e2e.yml` (suite-root `scripts/compose-e2e.sh`) |
 
-Ignore `bin/`, `obj/`, `data/`, runtime `output/`.
+Ignore `bin/`, `obj/`, `data/`, `output/`, `TestResults/`, `artifacts/`.
 
 ## Layout
 
