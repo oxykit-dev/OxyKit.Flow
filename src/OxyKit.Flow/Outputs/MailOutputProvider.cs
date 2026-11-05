@@ -57,12 +57,25 @@ public sealed class MailOutputProvider(
             ? GuessFileName(artifact.ContentType)
             : artifact.FileName!;
 
-        var subject = string.IsNullOrWhiteSpace(request.Subject)
-            ? ApplyTemplate(settings.DefaultSubject, fileName)
-            : request.Subject!;
-        var body = string.IsNullOrWhiteSpace(request.Body)
-            ? ApplyTemplate(settings.DefaultBody, fileName)
-            : request.Body!;
+        var useTemplate = !string.IsNullOrWhiteSpace(request.TemplateId);
+        if (useTemplate && request.Data is not { ValueKind: JsonValueKind.Object })
+        {
+            throw new ArgumentException(
+                "Mail output with templateId requires a JSON object in data.",
+                nameof(request)
+            );
+        }
+
+        var subject = useTemplate
+            ? ""
+            : string.IsNullOrWhiteSpace(request.Subject)
+                ? ApplyTemplate(settings.DefaultSubject, fileName)
+                : request.Subject!;
+        var body = useTemplate
+            ? ""
+            : string.IsNullOrWhiteSpace(request.Body)
+                ? ApplyTemplate(settings.DefaultBody, fileName)
+                : request.Body!;
 
         var payload = new MailSendRequest(
             To: request.Destination.Trim(),
@@ -70,12 +83,14 @@ public sealed class MailOutputProvider(
             Bcc: settings.DefaultBcc ?? "",
             Subject: subject,
             Body: body,
-            IsHtml: settings.DefaultIsHtml,
+            IsHtml: useTemplate || settings.DefaultIsHtml,
             Attachments:
             [
                 new MailAttachmentRequest(fileName, artifact.Content, artifact.ContentType),
             ],
-            ScheduledFor: null
+            ScheduledFor: null,
+            TemplateId: useTemplate ? request.TemplateId!.Trim() : null,
+            Data: useTemplate ? request.Data : null
         );
 
         var http = httpClientFactory.CreateClient(HttpClientName);
@@ -162,7 +177,9 @@ public sealed class MailOutputProvider(
         string Body,
         bool IsHtml,
         List<MailAttachmentRequest>? Attachments,
-        DateTime? ScheduledFor
+        DateTime? ScheduledFor,
+        string? TemplateId,
+        JsonElement? Data
     );
 
     private sealed record MailAttachmentRequest(

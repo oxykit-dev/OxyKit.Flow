@@ -10,7 +10,8 @@ public sealed class CreateJobEndpoint(JobService jobs)
     {
         Post("/jobs/");
         Version(1);
-        AuthSchemes(AuthSchemeNames.ApiKey);
+        AuthSchemes(AuthSchemeNames.ApiKeyOrBearer);
+        Policies(AuthPolicies.JobsWrite);
         Validator<CreateJobRequestValidator>();
         Summary(s =>
         {

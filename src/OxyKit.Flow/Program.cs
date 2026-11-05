@@ -19,7 +19,7 @@ builder.AddOxyKitOpenTelemetry(o =>
     o.ActivitySources = [FlowTelemetry.ActivitySourceName];
     o.Meters = [FlowTelemetry.MeterName];
 });
-builder.Services.AddOxyKitFlowHost();
+builder.Services.AddOxyKitFlowHost(builder.Configuration);
 builder.Services.AddOxyKitFlowDatabase(builder.Configuration);
 builder.Services.Configure<JobOptions>(builder.Configuration.GetSection(JobOptions.SectionName));
 builder.Services.Configure<ArtifactCacheOptions>(
@@ -91,6 +91,16 @@ builder.Services.SwaggerDocument(o =>
                 Name = "X-OxyKit-Flow-Key",
                 In = OpenApiSecurityApiKeyLocation.Header,
                 Type = OpenApiSecuritySchemeType.ApiKey,
+            }
+        );
+        s.AddAuth(
+            AuthSchemeNames.Bearer,
+            new()
+            {
+                Type = OpenApiSecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                Description = "Mail-issued JWT (Admin write; Admin|User read).",
             }
         );
     };

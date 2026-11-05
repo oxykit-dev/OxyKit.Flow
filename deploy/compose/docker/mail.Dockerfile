@@ -12,6 +12,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/publish .
+COPY docker/mail-entrypoint.sh /app/mail-entrypoint.sh
+RUN chmod +x /app/mail-entrypoint.sh
 ENV ASPNETCORE_URLS=http://+:5026
+ENV MailTemplates__TemplatesRoot=/data/templates
+ENV OXYKIT_MAIL_TEMPLATES_SEED=/app/templates
 EXPOSE 5026
-ENTRYPOINT ["dotnet", "OxyKit.Mail.dll"]
+ENTRYPOINT ["/app/mail-entrypoint.sh"]

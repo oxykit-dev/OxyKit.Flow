@@ -25,7 +25,8 @@ public sealed class ListJobsEndpoint(JobService jobs) : FlowEndpoint<ListJobsReq
     {
         Get("/jobs/");
         Version(1);
-        AuthSchemes(AuthSchemeNames.ApiKey);
+        AuthSchemes(AuthSchemeNames.ApiKeyOrBearer);
+        Policies(AuthPolicies.JobsRead);
         Summary(s =>
         {
             s.Summary = "List jobs";

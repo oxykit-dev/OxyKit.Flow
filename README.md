@@ -27,7 +27,8 @@ Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-ke
 | URL / header | Purpose |
 |--------------|---------|
 | `http://localhost:5077` | API |
-| `X-OxyKit-Flow-Key: dev-flow-key` | Dev API key |
+| `X-OxyKit-Flow-Key: dev-flow-key` | Dev API key (Admin). A non-empty key header is the only credential checked |
+| `Authorization: Bearer` | Mail JWT (`Security:Jwt`). Admin creates and retries; Admin\|User reads; Sender has no job access |
 | `GET /health` | Health |
 | `X-Correlation-Id` | Optional; echoed; propagated to Render/Mail on job work |
 | `/scalar`, `/openapi/v1.json` | OpenAPI UI + JSON (Development only) |
@@ -42,7 +43,7 @@ dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 
 **Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), optional **Jobs — mail**, then **Jobs — admin** (list / retry).
 
-Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). Optional per-output `"zip": true`. `file` / `ftp` / `sftp` write via `*.partial` then rename (overwrite). Render artifacts cached under `Artifacts:Root` for delivery retries; optional terminal webhooks. Layout and constraints: [AGENTS.md](./AGENTS.md).
+Outputs: `file`, `mail` (HTTP to OxyKit.Mail), `ftp` / `sftp` (named profiles). A `mail` delivery may pass `templateId` + JSON object `data` through to Mail; the render artifact stays attached. Optional per-output `"zip": true`. `file` / `ftp` / `sftp` write via `*.partial` then rename (overwrite). Render artifacts cached under `Artifacts:Root` for delivery retries; optional terminal webhooks. Layout and constraints: [AGENTS.md](./AGENTS.md).
 
 Observability: NuGet [`OxyKit.Observability`](https://www.nuget.org/packages/OxyKit.Observability) + [`OxyKit.OpenTelemetry`](https://www.nuget.org/packages/OxyKit.OpenTelemetry) (JSON stdout; correlation propagated to Render/Mail; optional OTLP). Docs: [oxykit.dev/guide/observability](https://oxykit.dev/guide/observability).
 
@@ -53,6 +54,7 @@ Observability: NuGet [`OxyKit.Observability`](https://www.nuget.org/packages/Oxy
 | [AGENTS.md](./AGENTS.md) | Layout, pipeline, constraints |
 | [docs/RELEASE.md](./docs/RELEASE.md) | Tag → GitHub Release app zips |
 | [oxykit.dev/flow](https://oxykit.dev/flow/) | Product docs |
+| [oxykit.dev/guide/iis](https://oxykit.dev/guide/iis) | Windows / IIS |
 | [src/OxyKit.Flow/PHILOSOPHY.md](./src/OxyKit.Flow/PHILOSOPHY.md) | Product vision |
 | [hoppscotch/](./hoppscotch/) | Manual HTTP smoke |
 | [CHANGELOG.md](./CHANGELOG.md) | Keep a Changelog |

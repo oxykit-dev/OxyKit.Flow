@@ -24,6 +24,28 @@ public sealed class CreateJobRequestValidator : AbstractValidator<CreateJobReque
         RuleFor(x => x.Outputs)
             .NotEmpty()
             .WithMessage("At least one output is required.");
+        When(
+            x => x.Outputs is not null,
+            () =>
+            {
+                RuleForEach(x => x.Outputs)
+                    .ChildRules(output =>
+                    {
+                        output
+                            .RuleFor(o => o.TemplateId)
+                            .Matches("^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+                            .When(o => !string.IsNullOrWhiteSpace(o.TemplateId))
+                            .WithMessage(
+                                "templateId must be a simple name (letters, digits, '-', '_')."
+                            );
+                        output
+                            .RuleFor(o => o.Data)
+                            .Must(d => d is { ValueKind: JsonValueKind.Object })
+                            .When(o => !string.IsNullOrWhiteSpace(o.TemplateId))
+                            .WithMessage("data must be a JSON object when templateId is set.");
+                    });
+            }
+        );
         RuleFor(x => x.WebhookUrl)
             .Must(url => JobWebhookDispatcher.ValidateWebhookUrl(url) is null)
             .When(x => !string.IsNullOrWhiteSpace(x.WebhookUrl))

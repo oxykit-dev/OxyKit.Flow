@@ -1,6 +1,6 @@
 # OxyKit golden path: Render + Mail + Flow (external SMTP via .env).
 # From suite root: cp .env.example .env && docker compose up --build
-# Optional UI: docker compose --profile ui up --build
+# Console: oxykit-console (`npm run dev`) — not a compose service.
 
 services:
   render:
@@ -16,6 +16,9 @@ services:
       Security__ApiKeyHeader: X-OxyKit-Render-Key
       # Flow reaches Render over the Docker network, not loopback
       Security__RequireLocalRequests: "false"
+      Rendering__TemplatesRoot: /data/templates
+    volumes:
+      - render-templates:/data/templates
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5066/health"]
       interval: 10s
@@ -37,6 +40,7 @@ services:
       ASPNETCORE_URLS: http://+:5026
       DatabaseProvider: SQLite
       ConnectionStrings__SQLiteConnection: Data Source=/data/OxyKit.Mail.db
+      MailTemplates__TemplatesRoot: /data/templates
     volumes:
       - mail-data:/data
     # /health may be 503 when external SMTP is unreachable; still treat process as up
@@ -84,22 +88,8 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  mail-web:
-    profiles: ["ui"]
-    build:
-      context: ./oxykit-mail-web
-      dockerfile: ../docker/mail-web.Dockerfile
-      args:
-        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:5026}
-        VITE_SIGNALR_HUB_URL: ${VITE_SIGNALR_HUB_URL:-http://localhost:5026/hubs}
-    ports:
-      - "5173:80"
-    depends_on:
-      mail:
-        condition: service_healthy
-    restart: unless-stopped
-
 volumes:
   mail-data:
   flow-data:
   flow-output:
+  render-templates:

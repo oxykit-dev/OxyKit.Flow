@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Mail output: optional `templateId` + `data` on a delivery (pass-through to OxyKit.Mail; artifact still attached). Create-time validation requires a JSON object `data` and a simple `templateId`
+- Dual auth: `X-OxyKit-Flow-Key` or Mail JWT (`Security:Jwt`, same triple as Mail). API key is Admin. JWT Admin creates and retries; Admin|User reads; Sender has no job access
+
 ### Fixed
 
 - `compose-bootstrap-mail.sh`: pass the `.env` body into `re.sub` when rewriting `FLOW_MAIL_API_KEY` (compose-e2e was crashing after minting the key)

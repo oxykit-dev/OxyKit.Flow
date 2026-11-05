@@ -1,6 +1,9 @@
+using System.Text;
 using FastEndpoints;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using OxyKit.Flow.Infrastructure;
 using OxyKit.Flow.Infrastructure.Postgres;
 using OxyKit.Flow.Infrastructure.Sqlite;
@@ -11,7 +14,10 @@ namespace OxyKit.Flow.Common.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddOxyKitFlowHost(this IServiceCollection services)
+    public static IServiceCollection AddOxyKitFlowHost(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
         services
             .AddOptions<FlowSecurityOptions>()
@@ -26,12 +32,78 @@ public static class ServiceCollectionExtensions
 
         services.AddFastEndpoints();
         services
-            .AddAuthentication(AuthSchemeNames.ApiKey)
+            .AddAuthentication(options =>
+            {
+                options.DefaultScheme = AuthSchemeNames.ApiKeyOrBearer;
+                options.DefaultChallengeScheme = AuthSchemeNames.ApiKeyOrBearer;
+            })
+            .AddPolicyScheme(
+                AuthSchemeNames.ApiKeyOrBearer,
+                "API key or Bearer JWT",
+                options =>
+                {
+                    options.ForwardDefaultSelector = context =>
+                    {
+                        var header =
+                            configuration["Security:ApiKeyHeader"] ?? "X-OxyKit-Flow-Key";
+                        if (context.Request.Headers.ContainsKey(header))
+                            return AuthSchemeNames.ApiKey;
+                        return AuthSchemeNames.Bearer;
+                    };
+                }
+            )
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>(
                 AuthSchemeNames.ApiKey,
                 _ => { }
+            )
+            .AddJwtBearer(
+                AuthSchemeNames.Bearer,
+                options =>
+                {
+                    var jwtKey = configuration["Security:Jwt:Key"];
+                    if (string.IsNullOrWhiteSpace(jwtKey))
+                    {
+                        // Keep scheme registered; tokens fail validation until Jwt is configured.
+                        jwtKey = "unconfigured-jwt-key-placeholder-32chars!";
+                    }
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = configuration["Security:Jwt:Issuer"],
+                        ValidAudience = configuration["Security:Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(jwtKey)
+                        ),
+                        RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+                    };
+                }
             );
-        services.AddAuthorization();
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(
+                AuthPolicies.JobsWrite,
+                policy =>
+                {
+                    policy.AddAuthenticationSchemes(AuthSchemeNames.ApiKeyOrBearer);
+                    policy.RequireAuthenticatedUser();
+                    policy.RequireRole("Admin");
+                }
+            );
+            options.AddPolicy(
+                AuthPolicies.JobsRead,
+                policy =>
+                {
+                    policy.AddAuthenticationSchemes(AuthSchemeNames.ApiKeyOrBearer);
+                    policy.RequireAuthenticatedUser();
+                    policy.RequireRole("Admin", "User");
+                }
+            );
+        });
         return services;
     }
 

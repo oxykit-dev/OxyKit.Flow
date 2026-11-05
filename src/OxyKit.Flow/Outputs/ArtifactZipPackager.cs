@@ -69,6 +69,8 @@ public static class ArtifactZipPackager
             Profile = request.Profile,
             Subject = request.Subject,
             Body = request.Body,
+            TemplateId = request.TemplateId,
+            Data = request.Data,
             Zip = request.Zip,
         };
     }

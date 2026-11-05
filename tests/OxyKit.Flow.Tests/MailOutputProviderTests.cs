@@ -89,6 +89,63 @@ public sealed class MailOutputProviderTests
     }
 
     [Fact]
+    public async Task SendAsync_WithTemplateId_PassesTemplateAndData()
+    {
+        var handler = new CapturingHandler(
+            HttpStatusCode.OK,
+            """{"emailId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","status":"sent","message":"ok"}"""
+        );
+        var sut = CreateSut(handler);
+        var data = JsonSerializer.SerializeToElement(new { name = "Ada", invoice = "INV-1" });
+
+        await sut.SendAsync(
+            SampleArtifact(),
+            new DeliveryRequest
+            {
+                Provider = "mail",
+                Destination = "ops@example.com",
+                TemplateId = "welcome",
+                Data = data,
+            },
+            SampleContext,
+            TestContext.Current.CancellationToken
+        );
+
+        using var doc = JsonDocument.Parse(handler.LastBody!);
+        var root = doc.RootElement;
+        root.GetProperty("templateId").GetString().Should().Be("welcome");
+        root.GetProperty("data").GetProperty("name").GetString().Should().Be("Ada");
+        root.GetProperty("attachments").GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SendAsync_TemplateIdWithoutObjectData_Throws()
+    {
+        var handler = new CapturingHandler(
+            HttpStatusCode.OK,
+            """{"emailId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","status":"sent","message":"ok"}"""
+        );
+        var sut = CreateSut(handler);
+
+        await sut.Invoking(s =>
+                s.SendAsync(
+                    SampleArtifact(),
+                    new DeliveryRequest
+                    {
+                        Provider = "mail",
+                        Destination = "ops@example.com",
+                        TemplateId = "welcome",
+                    },
+                    SampleContext,
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .Should()
+            .ThrowAsync<ArgumentException>()
+            .WithMessage("*data*");
+    }
+
+    [Fact]
     public async Task SendAsync_UnknownStatus_Throws()
     {
         var handler = new CapturingHandler(

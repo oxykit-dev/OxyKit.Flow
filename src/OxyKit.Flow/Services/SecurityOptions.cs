@@ -8,4 +8,7 @@ public sealed class SecurityOptions
 
     /// <summary>Shared secret; required at startup (except health).</summary>
     public string ApiKey { get; set; } = "";
+
+    /// <summary>Optional Mail-issued JWT for human UIs.</summary>
+    public JwtSecurityOptions Jwt { get; set; } = new();
 }

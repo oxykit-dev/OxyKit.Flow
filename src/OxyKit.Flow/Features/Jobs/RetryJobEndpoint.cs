@@ -14,7 +14,8 @@ public sealed class RetryJobEndpoint(JobService jobs) : FlowEndpoint<RetryJobReq
     {
         Post("/jobs/{id}/retry");
         Version(1);
-        AuthSchemes(AuthSchemeNames.ApiKey);
+        AuthSchemes(AuthSchemeNames.ApiKeyOrBearer);
+        Policies(AuthPolicies.JobsWrite);
         Summary(s =>
         {
             s.Summary = "Retry a dead-lettered job";

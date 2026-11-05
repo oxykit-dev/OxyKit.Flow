@@ -10,6 +10,7 @@ namespace OxyKit.Flow.Security;
 
 /// <summary>
 /// Shared-secret API key authentication (header from <see cref="FlowSecurityOptions"/>).
+/// Machine callers get an Admin role so they pass the same policies as JWT admins.
 /// </summary>
 public sealed class ApiKeyAuthHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -36,7 +37,10 @@ public sealed class ApiKeyAuthHandler(
         }
 
         var identity = new ClaimsIdentity(
-            [new Claim(ClaimTypes.Name, "flow-api-key")],
+            [
+                new Claim(ClaimTypes.Name, "flow-api-key"),
+                new Claim(ClaimTypes.Role, "Admin"),
+            ],
             AuthSchemeNames.ApiKey
         );
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), AuthSchemeNames.ApiKey);

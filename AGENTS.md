@@ -19,7 +19,7 @@ Companion engine: HTTP to OxyKit.Render via named `IDocumentRenderer` (default `
 | Vision | `src/OxyKit.Flow/PHILOSOPHY.md` |
 | DI / startup | `src/OxyKit.Flow/Program.cs`, `Common/Extensions/` |
 | ErrorOr → HTTP | `src/OxyKit.Flow/Common/FlowEndpoint.cs` |
-| Auth (API key) | `src/OxyKit.Flow/Security/ApiKeyAuthHandler.cs` |
+| Auth (API key + Mail JWT) | `src/OxyKit.Flow/Security/ApiKeyAuthHandler.cs`, `Common/Extensions/ServiceCollectionExtensions.cs` |
 | Create / get / list / retry jobs | `src/OxyKit.Flow/Features/Jobs/` |
 | Job service | `src/OxyKit.Flow/Features/Jobs/Services/JobService.cs` |
 | Execute + queue | `src/OxyKit.Flow/Services/JobExecutor.cs`, `JobQueueProcessor.cs` |
@@ -46,7 +46,7 @@ src/OxyKit.Flow.Infrastructure.Postgres/   UseNpgsql + SKIP LOCKED claim + Migra
 src/OxyKit.Flow/
   Features/Jobs/           Create/Get endpoints, DTOs, validator, JobService (ErrorOr)
   Common/                  FlowEndpoint, AuthSchemes, Extensions (AddOxyKitFlowDatabase)
-  Security/                ApiKeyAuthHandler
+  Security/                ApiKeyAuthHandler (+ Bearer JWT dual-auth)
   Services/                JobExecutor, JobQueueProcessor, options, serializers
   Renderers/               OxyKitRenderEngine, assembly loader, validator
   Outputs/                 IOutputProvider, File, Mail, Ftp, Sftp
@@ -90,7 +90,7 @@ Legacy `OxyKit.Render` still seeds the default. Optional job field `render.engin
 | Name | Destination | Notes |
 |------|-------------|-------|
 | `file` | filesystem path | writes bytes |
-| `mail` | To address | `POST /api/v1/email/send`; optional `subject` / `body` on the output. Mail owns SMTP; 200/202 + `emailId` + status `sent`/`accepted`/`scheduled` = output done — **do not** re-send on `accepted` |
+| `mail` | To address | `POST /api/v1/email/send`; optional `subject` / `body`, or `templateId` + `data` (Mail pack). Artifact still attached. Mail owns SMTP; 200/202 + `emailId` + status `sent`/`accepted`/`scheduled` = output done — **do not** re-send on `accepted` |
 | `ftp` | remote path | Named profile in `Outputs:Transfer:Profiles` (`Protocol: ftp`); optional FTPS via `UseSsl`. Job requires `profile`. Validated at create time |
 | `sftp` | remote path | Named profile (`Protocol: sftp`); password and/or `PrivateKeyPath`. Job requires `profile`. Validated at create time |
 
@@ -120,12 +120,12 @@ Shared libs (NuGet): `OxyKit.Observability` + `OxyKit.OpenTelemetry` — see [Ob
 - **file / ftp / sftp:** checkpoint skip on retry; write via `*.partial` then rename/move into the final path (overwrite). Crash mid-write leaves partial, not a second final sibling; crash after finalize but before Flow saves `Succeeded` still re-sends (overwrite). Mail hole closed via `Idempotency-Key`
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets
-- `Security:ApiKey` required at startup (ValidateOnStart; not the placeholder)
+- `Security:ApiKey` required at startup (ValidateOnStart; not the placeholder). Optional `Security:Jwt` validates Mail tokens. Policies: `JobsWrite` = API key or JWT Admin; `JobsRead` = API key or JWT Admin|User. A present API-key header selects that scheme (it does not fall through to Bearer)
 
 ## Add a route / output / render engine
 
 1. Flat files under `src/OxyKit.Flow/Features/{Feature}/` (subfolders only `Services/` when needed)
-2. Inherit `FlowEndpoint*`; `Configure()`: route, `Version(1)`, `AuthSchemes(AuthSchemeNames.ApiKey)`, Summary
+2. Inherit `FlowEndpoint*`; `Configure()`: route, `Version(1)`, `AuthSchemes(AuthSchemeNames.ApiKeyOrBearer)`, `Policies(...)` (`JobsWrite` or `JobsRead`), Summary
 3. `SendOnErrorAsync` for failures; DTOs only — never EF entities
 4. Validate at create time when possible (e.g. transfer profiles, render engines)
 5. **New output (in-repo):** implement `IOutputProvider`, register in `Program.cs`

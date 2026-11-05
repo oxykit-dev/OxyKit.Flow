@@ -14,7 +14,8 @@ public sealed class GetJobEndpoint(JobService jobs) : FlowEndpoint<GetJobRequest
     {
         Get("/jobs/{id}");
         Version(1);
-        AuthSchemes(AuthSchemeNames.ApiKey);
+        AuthSchemes(AuthSchemeNames.ApiKeyOrBearer);
+        Policies(AuthPolicies.JobsRead);
         Summary(s =>
         {
             s.Summary = "Get a job by id";

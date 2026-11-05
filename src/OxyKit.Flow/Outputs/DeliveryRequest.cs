@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace OxyKit.Flow.Outputs;
 
 /// <summary>
@@ -20,11 +22,20 @@ public sealed class DeliveryRequest
     /// </summary>
     public string? Profile { get; init; }
 
-    /// <summary>Optional mail subject override.</summary>
+    /// <summary>Optional mail subject override (ignored when <see cref="TemplateId"/> is set).</summary>
     public string? Subject { get; init; }
 
-    /// <summary>Optional mail body override.</summary>
+    /// <summary>Optional mail body override (ignored when <see cref="TemplateId"/> is set).</summary>
     public string? Body { get; init; }
+
+    /// <summary>
+    /// Optional OxyKit.Mail template id. When set, Mail renders <c>subject.txt</c> / <c>body.html</c>
+    /// with <see cref="Data"/>; Flow still attaches the render artifact.
+    /// </summary>
+    public string? TemplateId { get; init; }
+
+    /// <summary>JSON object for <see cref="TemplateId"/> (required by Mail when templateId is set).</summary>
+    public JsonElement? Data { get; init; }
 
     /// <summary>
     /// When true, wrap the single render artifact in a zip before this provider runs
