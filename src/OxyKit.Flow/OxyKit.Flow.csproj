@@ -25,7 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.19.0" />
     <PackageReference Include="OxyKit.Observability" Version="0.1.1" />
     <PackageReference Include="OxyKit.OpenTelemetry" Version="0.1.1" />
     <PackageReference Include="OxyKit.Render.Client" Version="0.1.2" />
