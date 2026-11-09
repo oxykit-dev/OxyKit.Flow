@@ -2,6 +2,16 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- `Dockerfile` + `.github/workflows/docker.yml`: multi-arch image `ghcr.io/oxykit-dev/oxykit-flow` (release tags, `edge` from master)
+
+### Removed
+
+- `deploy/compose/` and the `Compose E2E` workflow: the suite Compose stack, Mail bootstrap and smoke test moved to [oxykit-compose](https://github.com/oxykit-dev/oxykit-compose), which runs published images
+
 ## [0.1.3] - 2026-11-06
 
 ### Added

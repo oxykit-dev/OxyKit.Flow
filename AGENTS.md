@@ -31,7 +31,7 @@ Companion engine: HTTP to OxyKit.Render via named `IDocumentRenderer` (default `
 | OxyKit.Render API | `../OxyKit.Render/AGENTS.md` |
 | Tests | `tests/OxyKit.Flow.Tests/` |
 | Hoppscotch | `hoppscotch/` (do not paste JSON into chat) |
-| Compose E2E | `deploy/compose/` + `.github/workflows/compose-e2e.yml` (suite-root `scripts/compose-e2e.sh`) |
+| Docker image | `Dockerfile` + `.github/workflows/docker.yml` (Compose stack + E2E: [oxykit-compose](https://github.com/oxykit-dev/oxykit-compose)) |
 
 Ignore `bin/`, `obj/`, `data/`, `output/`, `TestResults/`, `artifacts/`.
 
@@ -116,7 +116,7 @@ Shared libs (NuGet): `OxyKit.Observability` + `OxyKit.OpenTelemetry` — see [Ob
 - Delivery checkpoints: `JobDelivery` per output; retries skip `Succeeded`; Mail key `{jobId:N}:{ordinal}`
 - Artifact cache: `IArtifactCache` / `FileArtifactCache` under `Artifacts:Root`; skip Render on delivery-only retry; clear on `Completed`
 - Webhooks: best-effort only (`IJobWebhookDispatcher`); never fail or re-queue the job on webhook errors
-- **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`). Requires `OxyKit.Mail:ApiKey` (compose: `./scripts/compose-bootstrap-mail.sh` or manual `FLOW_MAIL_API_KEY` + Flow restart) — empty key → mail deliveries fail
+- **Mail output:** Flow owns the job; Mail owns delivery. Fail/re-queue the job only when Mail rejects the handoff (non-2xx or missing `emailId`). Requires `OxyKit.Mail:ApiKey` (compose: oxykit-compose `./scripts/bootstrap-mail.sh` or manual `FLOW_MAIL_API_KEY` + Flow restart) — empty key → mail deliveries fail
 - **file / ftp / sftp:** checkpoint skip on retry; write via `*.partial` then rename/move into the final path (overwrite). Crash mid-write leaves partial, not a second final sibling; crash after finalize but before Flow saves `Succeeded` still re-sends (overwrite). Mail hole closed via `Idempotency-Key`
 - **FTP/SFTP:** in-process providers; credentials only in `Outputs:Transfer:Profiles`; validate profile + protocol at job create (`TransferOutputValidator`)
 - No secrets in source - config / user secrets
@@ -147,6 +147,10 @@ dotnet test --project tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 
 Dev key: `X-OxyKit-Flow-Key: dev-flow-key`.  
 Hoppscotch: import `hoppscotch/*`, env **OxyKit.Flow Local**, run folders in order — **Jobs — file** (Render) then optional **Jobs — mail** (Render + Mail + `mailTo` / Flow Mail API key).
+
+## Docker image
+
+`Dockerfile` (context = repo root) + `.github/workflows/docker.yml` publish `ghcr.io/oxykit-dev/oxykit-flow` for linux/amd64 + arm64: `v*` tag → `X.Y.Z`, `X.Y`, `latest`; `master` → `edge`; every build → `sha-<short>`. PRs build without pushing. The Compose stack + smoke test live in [oxykit-compose](https://github.com/oxykit-dev/oxykit-compose).
 
 ## Docs policy
 
