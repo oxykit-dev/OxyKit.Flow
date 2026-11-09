@@ -38,7 +38,7 @@ Development uses `appsettings.Development.json` (`X-OxyKit-Flow-Key: dev-flow-ke
 | `POST /api/v1/jobs/{id}/retry` | Requeue DeadLettered job |
 
 ```bash
-dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
+dotnet test --project tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 ```
 
 **Smoke:** import [`hoppscotch/`](./hoppscotch/) collection + env → **OxyKit.Flow Local** → **Jobs — file** (Render), optional **Jobs — mail**, then **Jobs — admin** (list / retry).

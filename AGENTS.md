@@ -142,7 +142,7 @@ cd OxyKit.Flow
 dotnet run --project ../OxyKit.Render/src/OxyKit.Render.Api   # :5066
 # Terminal B — Flow
 dotnet run --project src/OxyKit.Flow/OxyKit.Flow.csproj        # :5077  Scalar /scalar (Development)
-dotnet test tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
+dotnet test --project tests/OxyKit.Flow.Tests/OxyKit.Flow.Tests.csproj
 ```
 
 Dev key: `X-OxyKit-Flow-Key: dev-flow-key`.  
@@ -150,6 +150,6 @@ Hoppscotch: import `hoppscotch/*`, env **OxyKit.Flow Local**, run folders in ord
 
 ## Docs policy
 
-- Suite map: `../AGENTS.md` (Mail+Flow = FE/ErrorOr for DX; Render = Minimal APIs for resources/AOT)
+- Suite map: `../AGENTS.md` (Mail+Flow = FE/ErrorOr for DX; Render = Minimal APIs for resources/size)
 - Prefer editing the smallest owner (new output type ≠ changing executor unless needed)
 - Do not dump Hoppscotch JSON into agent context
