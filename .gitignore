@@ -16,3 +16,7 @@
 !.env.example
 
 .DS_Store
+
+# Local agent/editor rules (not tracked)
+.cursor/
+.devin/
